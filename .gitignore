@@ -1,0 +1,4 @@
+# Arquivos que NÃO vão pro site publicado
+serve.pl
+LEIA-ME.md
+.claude/

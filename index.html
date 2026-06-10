@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚽ Real Fut</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- html2canvas: usado só para BAIXAR o card comemorativo como imagem (defer: não bloqueia a página) -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+  <!-- ===================== AVISO: FALTAM AS CHAVES DO FIREBASE ===================== -->
+  <div id="firebaseWarning" class="firebase-warning hidden">
+    ⚠️ <strong>Falta configurar o Firebase!</strong>
+    Abra o arquivo <code>app.js</code> e cole suas chaves no lugar indicado
+    (<code>// COLE AQUI SUAS CHAVES DO FIREBASE</code>). Enquanto isso, o site não salva nada.
+  </div>
+
+  <!-- ===================== CABEÇALHO ===================== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="ball">⚽</span>
+      <h1>Real <span class="hl">Fut</span></h1>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-view="parte1">Regras &amp; Lista</button>
+      <button class="tab-btn" data-view="parte2">Scores 🏆</button>
+    </nav>
+
+    <div class="user-area">
+      <!-- Quando NÃO logado -->
+      <div id="loggedOut" class="user-box">
+        <button id="btnOpenLogin" class="btn btn-ghost">Entrar</button>
+        <button id="btnOpenRegister" class="btn btn-amarelo">Cadastrar</button>
+      </div>
+      <!-- Quando logado -->
+      <div id="loggedIn" class="user-box hidden">
+        <img id="meAvatar" class="avatar-sm" alt="" />
+        <span id="meNick" class="me-nick"></span>
+        <button id="btnLogout" class="btn btn-ghost">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== PARTE 1 — REGRAS & LISTA ===================== -->
+  <main id="parte1" class="view active">
+
+    <!-- A) AS REGRAS -->
+    <section class="card">
+      <h2 class="section-title">📜 As Regras do Real Fut</h2>
+      <ol class="rules" id="rulesList"><!-- preenchido via JS --></ol>
+    </section>
+
+    <!-- B) VOTAÇÃO DAS REGRAS -->
+    <section class="card">
+      <h2 class="section-title">🗳️ Você concorda com as regras?</h2>
+      <p class="muted">Só jogadores cadastrados e logados podem votar (e você pode trocar seu voto).</p>
+
+      <div id="voteButtons" class="vote-buttons">
+        <button id="btnAgree" class="btn btn-verde big">👍 Concordo</button>
+        <button id="btnDisagree" class="btn btn-vermelho big">👎 Não concordo</button>
+      </div>
+      <p id="voteHint" class="muted center">Entre com seu nome para votar.</p>
+
+      <div class="vote-result">
+        <div class="vote-bar">
+          <div id="barAgree" class="bar-agree"></div>
+          <div id="barDisagree" class="bar-disagree"></div>
+        </div>
+        <div class="vote-counts">
+          <span class="tag tag-verde">👍 <b id="countAgree">0</b> concordam</span>
+          <span class="tag tag-vermelho">👎 <b id="countDisagree">0</b> não concordam</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- D) LISTA DA QUARTA -->
+    <section class="card">
+      <h2 class="section-title">📋 Lista da Quarta</h2>
+      <p class="muted">
+        Lista da quarta-feira <b id="cycleDate"></b>. Limite de <b>20</b> jogadores —
+        marque a caixinha para entrar com o <b>seu</b> nome.
+      </p>
+
+      <label class="join-box">
+        <input type="checkbox" id="joinCheckbox" />
+        <span>Estou dentro nesta quarta! ✅</span>
+      </label>
+
+      <div class="list-meta">
+        <span class="tag tag-azul">Na lista: <b id="listCount">0</b>/20</span>
+        <span id="listFull" class="tag tag-vermelho hidden">🔒 LISTA CHEIA</span>
+        <span class="tag">Restam: <b id="listLeft">20</b></span>
+      </div>
+
+      <ol id="wedList" class="wed-list"><!-- preenchido via JS --></ol>
+
+      <div class="admin-row">
+        <button id="btnResetList" class="btn btn-ghost small">🧹 Zerar lista (admin)</button>
+        <span class="muted tiny">A lista também zera sozinha a cada nova quarta.</span>
+      </div>
+    </section>
+
+    <!-- E) SORTEIO DE TIMES -->
+    <section class="card">
+      <h2 class="section-title">🎲 Sorteio de Times</h2>
+      <p class="muted">
+        Máximo 4 times, 5 jogadores de linha cada. Goleiro é emprestado (revezamento),
+        a não ser que alguém tenha marcado que quer ser goleiro fixo.
+      </p>
+      <button id="btnDraw" class="btn btn-verde big">⚡ Sortear times</button>
+      <div id="drawResult" class="draw-result"><!-- preenchido via JS --></div>
+    </section>
+  </main>
+
+  <!-- ===================== PARTE 2 — SCORES ===================== -->
+  <main id="parte2" class="view">
+
+    <!-- INFO DA TEMPORADA -->
+    <section class="card season-card">
+      <h2 class="section-title">🏆 Temporada Real Fut</h2>
+      <p class="muted">Vale de <b>01/06/2026</b> a <b>31/12/2026</b>. No fim, os 3 melhores ganham o card de campeão!</p>
+      <div id="seasonStatus" class="tag tag-azul"></div>
+    </section>
+
+    <!-- STATUS DO HORÁRIO (quadra aberta/fechada) -->
+    <section id="windowBanner" class="card window-banner">
+      <span id="windowText"></span>
+    </section>
+
+    <!-- REGISTRAR AÇÕES -->
+    <section class="card">
+      <h2 class="section-title">✍️ Registrar minhas ações</h2>
+      <p class="muted">
+        Cada um lança as <b>próprias</b> jogadas. Liberado só nas <b>quartas, das 19:50 às 23h</b> (horário de Brasília).
+      </p>
+      <p id="actionWho" class="muted center">Entre com seu nome para lançar ações.</p>
+
+      <div id="actionPanel" class="action-panel hidden">
+        <div class="pts-legend">
+          <span class="tag tag-verde">Vitória +8</span>
+          <span class="tag tag-amarelo">Gol +5</span>
+          <span class="tag tag-azul">Assistência +3</span>
+          <span class="tag">Gaia/Rolinho +2</span>
+          <span class="tag tag-vermelho">Amarelo −3</span>
+        </div>
+        <div class="action-grid">
+          <button class="btn act" data-type="win">🏅 Vitória <small>+8</small></button>
+          <button class="btn act" data-type="goal">⚽ Gol <small>+5</small></button>
+          <button class="btn act" data-type="assist">🅰️ Assistência <small>+3</small></button>
+          <button class="btn act" data-type="gaia">😂 Gaia/Rolinho <small>+2</small></button>
+          <button class="btn act" data-type="yellow">🟨 Cartão amarelo <small>−3</small></button>
+        </div>
+        <p id="actionFeedback" class="action-feedback"></p>
+      </div>
+    </section>
+
+    <!-- RANKING -->
+    <section class="card">
+      <div class="rank-head">
+        <h2 class="section-title">👑 Ranking</h2>
+        <button id="btnRefresh" class="btn btn-ghost small">🔄 Atualizar dados</button>
+      </div>
+
+      <div id="podium" class="podium"><!-- pódio via JS --></div>
+      <table class="rank-table">
+        <thead>
+          <tr><th>#</th><th>Jogador</th><th>Pts</th></tr>
+        </thead>
+        <tbody id="rankBody"><!-- via JS --></tbody>
+      </table>
+    </section>
+
+    <!-- RESUMO DAS PARTIDAS -->
+    <section class="card">
+      <h2 class="section-title">📰 Resumo das quartas</h2>
+      <div id="matchSummaries"><!-- via JS --></div>
+    </section>
+
+    <!-- CARD COMEMORATIVO (fim de temporada) -->
+    <section class="card">
+      <h2 class="section-title">🎉 Card de Campeões</h2>
+      <p class="muted">Gera o card com o pódio da temporada — pra postar no grupo e tirar onda.</p>
+      <button id="btnMakeCard" class="btn btn-amarelo">✨ Gerar card de campeões</button>
+      <div id="championCardWrap" class="champion-wrap hidden">
+        <div id="championCard" class="champion-card"><!-- via JS --></div>
+        <button id="btnDownloadCard" class="btn btn-verde">⬇️ Baixar imagem</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== MODAIS ===================== -->
+
+  <!-- Cadastro -->
+  <div id="registerModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Cadastrar jogador</h3>
+      <label>Senha de cadastro
+        <input type="password" id="regPass" placeholder="senha do grupo" />
+      </label>
+      <label>Nome completo
+        <input type="text" id="regName" placeholder="Ex: João da Silva" />
+      </label>
+      <label>Apelido (aparece nos Scores)
+        <input type="text" id="regNick" placeholder="Ex: Joãozinho" />
+      </label>
+      <label class="check-line">
+        <input type="checkbox" id="regGK" /> Quero ser goleiro fixo 🧤
+      </label>
+      <label>Foto de perfil (opcional)
+        <input type="file" id="regPhoto" accept="image/*" />
+      </label>
+      <img id="regPreview" class="reg-preview hidden" alt="" />
+      <p id="regError" class="error-msg"></p>
+      <div class="modal-actions">
+        <button id="btnDoRegister" class="btn btn-verde">Cadastrar</button>
+        <button class="btn btn-ghost closeModal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login (escolher nome) -->
+  <div id="loginModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Entrar</h3>
+      <p class="muted">Escolha seu nome para entrar (sessão simples, sem senha).</p>
+      <select id="loginSelect"></select>
+      <p id="loginError" class="error-msg"></p>
+      <div class="modal-actions">
+        <button id="btnDoLogin" class="btn btn-verde">Entrar</button>
+        <button class="btn btn-ghost closeModal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Senha genérica (sorteio / zerar lista) -->
+  <div id="passModal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="passTitle">Senha</h3>
+      <label id="passLabel">Digite a senha
+        <input type="password" id="passInput" />
+      </label>
+      <p id="passError" class="error-msg"></p>
+      <div class="modal-actions">
+        <button id="btnPassOk" class="btn btn-verde">Confirmar</button>
+        <button class="btn btn-ghost closeModal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App principal (módulo ES) -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
