@@ -55,23 +55,28 @@
 
     <!-- B) VOTAÇÃO DAS REGRAS -->
     <section class="card">
-      <h2 class="section-title">🗳️ Você concorda com as regras?</h2>
-      <p class="muted">Só jogadores cadastrados e logados podem votar (e você pode trocar seu voto).</p>
+      <h2 class="section-title">🗳️ Concorda com as regras?</h2>
+      <div class="vote-compact">
+        <div class="vote-buttons">
+          <button id="btnAgree" class="btn btn-verde">👍 Concordo</button>
+          <button id="btnDisagree" class="btn btn-vermelho">👎 Não concordo</button>
+        </div>
+        <p id="voteHint" class="muted tiny center">Entre com seu nome para votar (pode trocar).</p>
 
-      <div id="voteButtons" class="vote-buttons">
-        <button id="btnAgree" class="btn btn-verde big">👍 Concordo</button>
-        <button id="btnDisagree" class="btn btn-vermelho big">👎 Não concordo</button>
-      </div>
-      <p id="voteHint" class="muted center">Entre com seu nome para votar.</p>
-
-      <div class="vote-result">
         <div class="vote-bar">
           <div id="barAgree" class="bar-agree"></div>
           <div id="barDisagree" class="bar-disagree"></div>
         </div>
-        <div class="vote-counts">
-          <span class="tag tag-verde">👍 <b id="countAgree">0</b> concordam</span>
-          <span class="tag tag-vermelho">👎 <b id="countDisagree">0</b> não concordam</span>
+
+        <div class="vote-sides">
+          <div class="vote-side sim">
+            <div class="vhead"><span>👍 Concordam</span><span class="vcount" id="countAgree">0</span></div>
+            <div class="vote-avatars" id="avatarsAgree"></div>
+          </div>
+          <div class="vote-side nao">
+            <div class="vhead"><span>👎 Não</span><span class="vcount" id="countDisagree">0</span></div>
+            <div class="vote-avatars" id="avatarsDisagree"></div>
+          </div>
         </div>
       </div>
     </section>

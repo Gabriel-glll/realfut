@@ -570,13 +570,22 @@ function renderLogin() {
 }
 
 function renderVotacao() {
-  const sim = state.votes.filter(v => v.agree).length;
-  const nao = state.votes.filter(v => !v.agree).length;
+  const simVotos = state.votes.filter(v => v.agree);
+  const naoVotos = state.votes.filter(v => !v.agree);
+  const sim = simVotos.length, nao = naoVotos.length;
   const total = sim + nao;
   $("#countAgree").textContent = sim;
   $("#countDisagree").textContent = nao;
   $("#barAgree").style.width = total ? `${(sim / total) * 100}%` : "50%";
   $("#barDisagree").style.width = total ? `${(nao / total) * 100}%` : "50%";
+
+  // mostra a foto de cada votante (acumula o voto de cada um)
+  const avatares = (votos) => votos.map(v => {
+    const p = state.players.find(x => x.id === v.id);
+    return `<img src="${fotoOuPadrao(p)}" title="${p ? p.nick : "?"}" alt="">`;
+  }).join("");
+  $("#avatarsAgree").innerHTML = avatares(simVotos);
+  $("#avatarsDisagree").innerHTML = avatares(naoVotos);
 
   const me = meuJogador();
   const hint = $("#voteHint");
