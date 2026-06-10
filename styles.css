@@ -191,6 +191,18 @@ body::before {
 .bar-agree { background: var(--verde); width: 50%; transition: width .4s; }
 .bar-disagree { background: var(--vermelho); width: 50%; transition: width .4s; }
 
+/* justificativas públicas */
+.vote-justifs { display: grid; gap: 8px; }
+.justifs-title { font-weight: 800; font-size: .9rem; margin-top: 4px; color: var(--amarelo); }
+.justif { display: flex; gap: 10px; align-items: flex-start; background: var(--card-2); border: 1px solid var(--linha); border-left: 3px solid var(--vermelho); padding: 9px 11px; border-radius: 10px; }
+.justif img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background:#0b1a12; flex: 0 0 auto; }
+.justif b { display: block; font-size: .85rem; }
+.justif span { font-size: .85rem; color: var(--muted); }
+
+/* banner do modo teste */
+.demo-banner { background: linear-gradient(90deg, #3a2c00, #2a1f00); color: #ffe066; padding: 9px 16px; text-align: center; font-size: .88rem; border-bottom: 1px solid var(--amarelo-d); }
+.demo-banner a { color: #fff; font-weight: 700; }
+
 /* ---------- Lista da quarta ---------- */
 .join-box {
   display: flex; align-items: center; gap: 12px;
@@ -300,11 +312,12 @@ body::before {
 .modal-box label { display: grid; gap: 5px; font-size: .82rem; font-weight: 700; color: #c7d6cc; }
 .modal-box input[type=text],
 .modal-box input[type=password],
-.modal-box select {
+.modal-box select,
+.modal-box textarea {
   padding: 10px; border: 1px solid var(--linha); border-radius: 10px; font-size: 1rem;
-  background: rgba(0,0,0,.3); color: var(--texto);
+  background: rgba(0,0,0,.3); color: var(--texto); font-family: inherit; resize: vertical;
 }
-.modal-box input:focus, .modal-box select:focus { outline: none; border-color: var(--verde); }
+.modal-box input:focus, .modal-box select:focus, .modal-box textarea:focus { outline: none; border-color: var(--verde); }
 .modal-box select option { background: #0c1610; }
 .check-line { flex-direction: row !important; align-items: center; gap: 8px !important; }
 .reg-preview { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; justify-self: center; border: 3px solid var(--amarelo); }

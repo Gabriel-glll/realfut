@@ -78,6 +78,9 @@
             <div class="vote-avatars" id="avatarsDisagree"></div>
           </div>
         </div>
+
+        <!-- justificativas públicas de quem não concordou -->
+        <div id="voteJustifications" class="vote-justifs"></div>
       </div>
     </section>
 
@@ -211,6 +214,9 @@
       <label>Apelido (aparece nos Scores)
         <input type="text" id="regNick" placeholder="Ex: Joãozinho" />
       </label>
+      <label>🔒 Sua senha pessoal (você usa pra entrar depois)
+        <input type="password" id="regUserPass" placeholder="crie uma senha só sua" />
+      </label>
       <label class="check-line">
         <input type="checkbox" id="regGK" /> Quero ser goleiro fixo 🧤
       </label>
@@ -230,8 +236,11 @@
   <div id="loginModal" class="modal hidden">
     <div class="modal-box">
       <h3>Entrar</h3>
-      <p class="muted">Escolha seu nome para entrar (sessão simples, sem senha).</p>
+      <p class="muted">Escolha seu nome e digite sua senha pessoal.</p>
       <select id="loginSelect"></select>
+      <label>🔒 Sua senha
+        <input type="password" id="loginPass" placeholder="sua senha pessoal" />
+      </label>
       <p id="loginError" class="error-msg"></p>
       <div class="modal-actions">
         <button id="btnDoLogin" class="btn btn-verde">Entrar</button>
@@ -250,6 +259,22 @@
       <p id="passError" class="error-msg"></p>
       <div class="modal-actions">
         <button id="btnPassOk" class="btn btn-verde">Confirmar</button>
+        <button class="btn btn-ghost closeModal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Justificativa do voto "Não concordo" -->
+  <div id="voteModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>👎 Por que você não concorda?</h3>
+      <p class="muted">Diga qual regra e o motivo. Fica <b>visível para todos</b>.</p>
+      <label>Sua justificativa
+        <textarea id="voteJustifInput" rows="4" placeholder="Ex: Discordo da regra 4 porque..."></textarea>
+      </label>
+      <p id="voteError" class="error-msg"></p>
+      <div class="modal-actions">
+        <button id="btnVoteOk" class="btn btn-vermelho">Publicar voto</button>
         <button class="btn btn-ghost closeModal">Cancelar</button>
       </div>
     </div>
