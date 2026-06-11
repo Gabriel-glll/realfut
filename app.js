@@ -49,6 +49,30 @@ const LIMITE_LISTA = 20;
 const DEMO = new URLSearchParams(location.search).has("demo");
 
 /* =====================================================================
+   GRUPOS — dois ambientes separados, com dados isolados:
+   - "qua": pessoal da quarta (padrão, aberto)
+   - "dom": pessoal do domingo (acesso pela senha futclip)
+   Cada documento guarda o campo "grupo"; quem não tem é tratado como "qua"
+   (compatível com os dados que já existiam).
+   ===================================================================== */
+const GRUPOS = {
+  qua: {
+    id: "qua", nome: "Quarta", emoji: "🟢", cor: "#00d35f",
+    diaCurto: "Wed", diaNome: "quarta-feira", diaCurtoPt: "quarta",
+    janelaIni: 19 * 60 + 50, janelaFim: 23 * 60,
+    horaInicio: "19:50", horarioTxt: "das 19:50 às 23h"
+  },
+  dom: {
+    id: "dom", nome: "Domingo", emoji: "🔵", cor: "#2f6bff",
+    diaCurto: "Sun", diaNome: "domingo", diaCurtoPt: "domingo",
+    janelaIni: 7 * 60 + 50, janelaFim: 11 * 60,
+    horaInicio: "7:50", horarioTxt: "das 7:50 às 11h"
+  }
+};
+const SENHA_GRUPO_DOM = "futclip"; // senha para entrar no ambiente de domingo
+const GRUPO = GRUPOS[new URLSearchParams(location.search).get("grupo")] || GRUPOS.qua;
+
+/* =====================================================================
    2) FIREBASE x MODO TESTE (banco real vs banco de mentira na memória)
    ===================================================================== */
 let db = null;
@@ -69,8 +93,10 @@ const memEmit  = (c) => subs[c].forEach(cb => cb(memArray(c)));
 /* Carimbo de tempo: real usa serverTimestamp, teste usa um objeto simples */
 const stamp = () => DEMO ? { seconds: Date.now() / 1000 } : serverTimestamp();
 
-/* Camada de dados única (decide entre Firestore e memória) */
+/* Camada de dados única (decide entre Firestore e memória).
+   Todo documento é carimbado com o grupo atual (qua/dom) para isolar os dados. */
 async function dbSet(col, id, data) {
+  data = { ...data, grupo: GRUPO.id };
   if (DEMO) { mem[col][id] = data; memEmit(col); return; }
   await setDoc(doc(collection(db, col), id), data);
 }
@@ -87,7 +113,7 @@ function dbWatch(col, cb) {
 /* =====================================================================
    3) ESTADO LOCAL + SESSÃO
    ===================================================================== */
-const SESSION_KEY = DEMO ? "realfut_me_demo" : "realfut_me";
+const SESSION_KEY = `realfut_me_${GRUPO.id}${DEMO ? "_demo" : ""}`;
 const state = {
   players: [], votes: [], listEntries: [], actions: [],
   meId: localStorage.getItem(SESSION_KEY) || null
@@ -106,10 +132,12 @@ function brasiliaParts() {
   for (const p of parts) m[p.type] = p.value;
   return m;
 }
+/* Data (YYYY-MM-DD) do próximo/atual dia de jogo do grupo (quarta ou domingo) */
 function cicloAtual() {
   const p = brasiliaParts();
   const base = new Date(Date.UTC(+p.year, +p.month - 1, +p.day, 12));
-  const add = (3 - base.getUTCDay() + 7) % 7; // dias até quarta
+  const alvo = GRUPO.id === "dom" ? 0 : 3; // 0=domingo, 3=quarta
+  const add = (alvo - base.getUTCDay() + 7) % 7;
   base.setUTCDate(base.getUTCDate() + add);
   return base.toISOString().slice(0, 10);
 }
@@ -117,12 +145,12 @@ function hojeKey() {
   const p = brasiliaParts();
   return `${p.year}-${p.month}-${p.day}`;
 }
-/* Quarta, 19:50–23h. No MODO TESTE fica sempre aberta. */
+/* Janela do grupo (quarta 19:50–23h / domingo 7:50–11h). No MODO TESTE fica sempre aberta. */
 function quadraAberta() {
   if (DEMO) return true;
   const p = brasiliaParts();
   const min = (+p.hour) * 60 + (+p.minute);
-  return p.weekday === "Wed" && min >= (19 * 60 + 50) && min < (23 * 60);
+  return p.weekday === GRUPO.diaCurto && min >= GRUPO.janelaIni && min < GRUPO.janelaFim;
 }
 function ddmm(key) {
   if (!key) return "";
@@ -166,7 +194,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
    7) REGRAS (estáticas)
    ===================================================================== */
 const REGRAS = [
-  "Todos ajudar nas reservas de quarta.",
+  `Todos ajudar nas reservas de ${GRUPO.diaCurtoPt}.`,
   "Ter colete dupla face Azul e Amarelo.",
   "A partida é de 10 min ou 3 gols.",
   "O tempo é registrado pelo cronômetro, não por olho.",
@@ -174,10 +202,44 @@ const REGRAS = [
   "Rei da quadra: ganhou, fica jogando.",
   "Empate é vitória para quem entrou; quem já estava tem obrigação de ganhar.",
   "Apenas pessoas no lance podem questionar a falta/lateral/escanteio.",
-  "Os times são de 5 jogadores de linha (no máximo 4 times na quadra). Se faltar gente para fechar, prioriza-se completar os times de 5.",
+  "Os times são de 5 jogadores de linha (no máximo 4 times na quadra).",
   "Goleiro é emprestado: quem está de fora reveza no gol, na vez. Quem marcar no cadastro que quer ser goleiro fixo, fica no gol do seu time."
 ];
 $("#rulesList").innerHTML = REGRAS.map(r => `<li>${r}</li>`).join("");
+
+/* =====================================================================
+   7.05) TEXTOS E TROCA DE GRUPO (Quarta x Domingo)
+   ===================================================================== */
+function aplicarTextosDoGrupo() {
+  document.title = `⚽ Real Fut — ${GRUPO.nome}`;
+  const set = (id, txt) => { const el = $("#" + id); if (el) el.textContent = txt; };
+  set("groupBadge", `${GRUPO.emoji} ${GRUPO.nome} ▾`);
+  set("listaTitulo", `📋 Lista — ${GRUPO.nome}`);
+  set("listaDiaNome", GRUPO.diaNome);
+  const ad = $("#actionDesc");
+  if (ad) ad.innerHTML =
+    `Escolha o jogador e toque na jogada — os pontos vão para o <b>nome selecionado</b>. ` +
+    `Liberado só ${GRUPO.id === "dom" ? "aos domingos" : "nas quartas"}, <b>${GRUPO.horarioTxt}</b> (horário de Brasília).`;
+  // pinta o selo com a cor do grupo
+  const badge = $("#groupBadge");
+  if (badge) { badge.style.borderColor = GRUPO.cor; }
+}
+aplicarTextosDoGrupo();
+
+/* Ir para outro grupo (recarrega com ?grupo=…) preservando ?demo */
+function irParaGrupo(id) {
+  if (id === GRUPO.id) return closeModals();
+  const params = new URLSearchParams(location.search);
+  if (id === "qua") params.delete("grupo"); else params.set("grupo", id);
+  location.search = params.toString();
+}
+$("#groupBadge").addEventListener("click", () => openModal("groupModal"));
+$("#btnGrupoQua").addEventListener("click", () => irParaGrupo("qua"));
+$("#btnGrupoDom").addEventListener("click", () => {
+  if (GRUPO.id === "dom") return closeModals();
+  closeModals();
+  pedirSenha("Grupo do Domingo", SENHA_GRUPO_DOM, () => irParaGrupo("dom"));
+});
 
 /* =====================================================================
    7.1) CRONÔMETRO DA PARTIDA (10 minutos, contagem regressiva)
@@ -465,7 +527,7 @@ document.querySelectorAll(".btn.act").forEach(btn => {
     if (bloqueado) return alert("Configure o Firebase primeiro.");
     const me = meuJogador();
     if (!me) return precisaLogin("Entre na sua conta para lançar ações.");
-    if (!quadraAberta()) return mostrarFeedback("🔒 A quadra tá fechada! Volta quarta às 19:50.", true);
+    if (!quadraAberta()) return mostrarFeedback(`🔒 A quadra tá fechada! Volta ${GRUPO.diaCurtoPt} às ${GRUPO.horaInicio}.`, true);
 
     // a ação conta para o jogador SELECIONADO na caixa (não necessariamente quem está logado)
     const alvo = state.players.find(p => p.id === $("#actionPlayer").value) || me;
@@ -485,8 +547,7 @@ $("#recentActions").addEventListener("click", async (e) => {
   if (!btn) return;
   if (bloqueado) return alert("Configure o Firebase primeiro.");
   if (!meuJogador()) return precisaLogin("Entre na sua conta para apagar ações.");
-  if (!confirm("Apagar esta ação?")) return;
-  await dbDelete("actions", btn.dataset.id);
+  await dbDelete("actions", btn.dataset.id); // apaga direto, sem confirmação
 });
 function mostrarFeedback(msg, erro = false) {
   const el = $("#actionFeedback");
@@ -775,8 +836,8 @@ function renderJanela() {
   banner.classList.toggle("closed", !aberta);
   $("#windowText").textContent = aberta
     ? (DEMO ? "🧪 MODO TESTE: quadra sempre aberta pra você testar à vontade."
-            : "🟢 QUADRA ABERTA! Pode lançar suas ações até as 23h.")
-    : "🔴 Quadra fechada. Ações só nas quartas, das 19:50 às 23h (horário de Brasília).";
+            : "🟢 QUADRA ABERTA! Pode lançar suas ações agora.")
+    : `🔴 Quadra fechada. Ações só ${GRUPO.diaNome === "domingo" ? "aos domingos" : "nas quartas"}, ${GRUPO.horarioTxt} (horário de Brasília).`;
 
   const me = meuJogador();
   $("#actionWho").classList.toggle("hidden", !!me);
@@ -805,13 +866,12 @@ function renderRecentActions() {
     .slice(0, 20);
   cont.innerHTML = recentes.length
     ? recentes.map(a => `
-      <div class="recent-item">
+      <span class="recent-item" title="${ROTULO[a.type]} · ${escapeHtml(a.nick)} · ${ddmm(a.dateKey)}">
         <span class="ri-emoji">${EMOJI[a.type]}</span>
         <span class="ri-nick">${escapeHtml(a.nick)}</span>
         <span class="ri-pts ${a.points < 0 ? "neg" : ""}">${a.points > 0 ? "+" : ""}${a.points}</span>
-        <span class="ri-date">${ddmm(a.dateKey)}</span>
-        <button class="ri-del" data-id="${a.id}" title="Apagar esta ação">✕</button>
-      </div>`).join("")
+        <button class="ri-del" data-id="${a.id}" title="Apagar">✕</button>
+      </span>`).join("")
     : `<p class="muted tiny">Nenhuma ação lançada ainda.</p>`;
 }
 
@@ -896,15 +956,19 @@ function mostrarBannerDemo() {
 /* =====================================================================
    19) INÍCIO
    ===================================================================== */
+/* só os documentos do grupo atual (sem grupo = "qua", p/ compatibilidade).
+   No MODO TESTE não filtra (os dados de exemplo já estão isolados na memória). */
+const doGrupo = (arr) => DEMO ? arr : arr.filter(x => (x.grupo || "qua") === GRUPO.id);
+
 function startListeners() {
   dbWatch("players", (arr) => {
-    state.players = arr;
+    state.players = doGrupo(arr);
     if (state.meId && !state.players.some(p => p.id === state.meId)) setMe(null);
     renderTudo();
   });
-  dbWatch("votes", (arr) => { state.votes = arr; renderVotacao(); });
-  dbWatch("listEntries", (arr) => { state.listEntries = arr; renderLista(); });
-  dbWatch("actions", (arr) => { state.actions = arr; renderScores(); });
+  dbWatch("votes", (arr) => { state.votes = doGrupo(arr); renderVotacao(); });
+  dbWatch("listEntries", (arr) => { state.listEntries = doGrupo(arr); renderLista(); });
+  dbWatch("actions", (arr) => { state.actions = doGrupo(arr); renderScores(); });
 }
 
 if (DEMO) { mostrarBannerDemo(); seedDemo(); startListeners(); }

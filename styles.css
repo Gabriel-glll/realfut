@@ -77,6 +77,13 @@ body::before {
 @keyframes spin { to { transform: rotate(360deg); } }
 .brand h1 { font-size: 1.55rem; letter-spacing: .5px; font-weight: 900; }
 .brand .hl { color: var(--amarelo); }
+.group-badge {
+  background: rgba(255,255,255,.1); color: #fff;
+  border: 1.5px solid rgba(255,255,255,.3); border-radius: 999px;
+  padding: 4px 11px; font-weight: 800; font-size: .78rem; cursor: pointer;
+  transition: .15s; white-space: nowrap;
+}
+.group-badge:hover { background: rgba(255,255,255,.22); }
 
 .tabs { display: flex; gap: 8px; margin-left: auto; }
 .tab-btn {
@@ -323,16 +330,16 @@ body::before {
 }
 .action-player-label select option { background: #0c1610; }
 
-/* ---------- Ações recentes (apagar) ---------- */
+/* ---------- Ações recentes (chips compactos, apaga no ✕) ---------- */
 .recent-actions { margin-top: 16px; }
 .recent-title { font-weight: 800; font-size: .9rem; margin-bottom: 8px; }
-.recent-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 9px; background: var(--card-2); border: 1px solid var(--linha); margin-bottom: 6px; }
-.ri-emoji { font-size: 1.05rem; }
+#recentActions { display: flex; flex-wrap: wrap; gap: 6px; max-height: 132px; overflow-y: auto; }
+.recent-item { display: inline-flex; align-items: center; gap: 5px; padding: 3px 4px 3px 9px; border-radius: 999px; background: var(--card-2); border: 1px solid var(--linha); font-size: .8rem; }
+.ri-emoji { font-size: .92rem; }
 .ri-nick { font-weight: 700; }
 .ri-pts { font-weight: 800; color: var(--verde); }
 .ri-pts.neg { color: var(--vermelho); }
-.ri-date { margin-left: auto; font-size: .74rem; color: var(--muted); }
-.ri-del { background: rgba(255,77,77,.15); color: #ff9a9a; border: 1px solid rgba(255,77,77,.3); border-radius: 8px; width: 28px; height: 28px; cursor: pointer; font-weight: 800; flex: 0 0 auto; }
+.ri-del { background: rgba(255,77,77,.16); color: #ff9a9a; border: none; border-radius: 50%; width: 18px; height: 18px; line-height: 1; padding: 0; cursor: pointer; font-weight: 800; font-size: .68rem; }
 .ri-del:hover { background: var(--vermelho); color: #fff; }
 
 /* ---------- Destaques ---------- */
