@@ -41,6 +41,7 @@ const ROTULO = {
   win: "Vitória", goal: "Gol", assist: "Assistência",
   gaia: "Gaia/Rolinho", yellow: "Cartão amarelo"
 };
+const EMOJI = { win: "🏅", goal: "⚽", assist: "🅰️", gaia: "😂", yellow: "🟨" };
 
 const LIMITE_LISTA = 20;
 
@@ -166,16 +167,70 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
    ===================================================================== */
 const REGRAS = [
   "Todos ajudar nas reservas de quarta.",
-  "Chamar convidados somente quando a lista não estiver cheia.",
   "Ter colete dupla face Azul e Amarelo.",
   "A partida é de 10 min ou 3 gols.",
   "O tempo é registrado pelo cronômetro, não por olho.",
   "O tempo só conta com bola rolando; troca de time e faltas demoradas o tempo é pausado.",
   "Rei da quadra: ganhou, fica jogando.",
   "Empate é vitória para quem entrou; quem já estava tem obrigação de ganhar.",
-  "Apenas pessoas no lance podem questionar a falta/lateral/escanteio."
+  "Apenas pessoas no lance podem questionar a falta/lateral/escanteio.",
+  "Os times são de 5 jogadores de linha (no máximo 4 times na quadra). Se faltar gente para fechar, prioriza-se completar os times de 5.",
+  "Goleiro é emprestado: quem está de fora reveza no gol, na vez. Quem marcar no cadastro que quer ser goleiro fixo, fica no gol do seu time."
 ];
 $("#rulesList").innerHTML = REGRAS.map(r => `<li>${r}</li>`).join("");
+
+/* =====================================================================
+   7.1) CRONÔMETRO DA PARTIDA (10 minutos, contagem regressiva)
+   ===================================================================== */
+const CRONO_TOTAL = 10 * 60; // 10 minutos em segundos
+let cronoSeg = CRONO_TOTAL;
+let cronoInt = null;
+function fmtCrono(s) {
+  const m = Math.floor(s / 60), r = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+}
+function pintaCrono() {
+  const el = $("#cronoDisplay");
+  el.textContent = fmtCrono(cronoSeg);
+  el.classList.toggle("acabando", cronoSeg <= 30 && cronoSeg > 0);
+  el.classList.toggle("fim", cronoSeg === 0);
+}
+function bipeApito() {
+  // bip curto via Web Audio (sem arquivo externo)
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "square"; o.frequency.value = 880;
+    o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.2, ctx.currentTime);
+    o.start();
+    o.stop(ctx.currentTime + 0.6);
+  } catch (_) { /* navegador sem áudio, tudo bem */ }
+}
+function cronoTick() {
+  if (cronoSeg > 0) { cronoSeg--; pintaCrono(); }
+  if (cronoSeg === 0) {
+    clearInterval(cronoInt); cronoInt = null;
+    $("#cronoStart").textContent = "▶️ Iniciar";
+    bipeApito();
+  }
+}
+$("#cronoStart").addEventListener("click", () => {
+  if (cronoInt) {                 // está rodando → pausa
+    clearInterval(cronoInt); cronoInt = null;
+    $("#cronoStart").textContent = "▶️ Continuar";
+  } else {                        // parado → inicia/continua
+    if (cronoSeg === 0) cronoSeg = CRONO_TOTAL;
+    cronoInt = setInterval(cronoTick, 1000);
+    $("#cronoStart").textContent = "⏸️ Pausar";
+  }
+});
+$("#cronoReset").addEventListener("click", () => {
+  clearInterval(cronoInt); cronoInt = null;
+  cronoSeg = CRONO_TOTAL; pintaCrono();
+  $("#cronoStart").textContent = "▶️ Iniciar";
+});
+pintaCrono();
 
 /* =====================================================================
    8) CADASTRO (com senha pessoal)
@@ -412,14 +467,26 @@ document.querySelectorAll(".btn.act").forEach(btn => {
     if (!me) return precisaLogin("Entre na sua conta para lançar ações.");
     if (!quadraAberta()) return mostrarFeedback("🔒 A quadra tá fechada! Volta quarta às 19:50.", true);
 
+    // a ação conta para o jogador SELECIONADO na caixa (não necessariamente quem está logado)
+    const alvo = state.players.find(p => p.id === $("#actionPlayer").value) || me;
     const type = btn.dataset.type;
     const id = "a_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
     await dbSet("actions", id, {
-      playerId: me.id, nick: me.nick, type,
-      points: PONTOS[type], dateKey: hojeKey(), createdAt: stamp()
+      playerId: alvo.id, nick: alvo.nick, type, points: PONTOS[type],
+      dateKey: hojeKey(), por: me.nick, createdAt: stamp()
     });
-    mostrarFeedback(`${ROTULO[type]} lançado! ${PONTOS[type] > 0 ? "+" : ""}${PONTOS[type]} pts 🎉`);
+    mostrarFeedback(`${EMOJI[type]} ${ROTULO[type]} de ${alvo.nick}! ${PONTOS[type] > 0 ? "+" : ""}${PONTOS[type]} pts 🎉`);
   });
+});
+
+/* Apagar uma ação lançada por engano (delegação no container) */
+$("#recentActions").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".ri-del");
+  if (!btn) return;
+  if (bloqueado) return alert("Configure o Firebase primeiro.");
+  if (!meuJogador()) return precisaLogin("Entre na sua conta para apagar ações.");
+  if (!confirm("Apagar esta ação?")) return;
+  await dbDelete("actions", btn.dataset.id);
 });
 function mostrarFeedback(msg, erro = false) {
   const el = $("#actionFeedback");
@@ -439,11 +506,22 @@ const acoesDaTemporada = () =>
   state.actions.filter(a => a.dateKey >= TEMPORADA_INICIO && a.dateKey <= TEMPORADA_FIM);
 
 function calcularRanking() {
-  const pontos = {};
-  for (const a of acoesDaTemporada()) pontos[a.playerId] = (pontos[a.playerId] || 0) + a.points;
+  const pontos = {}, stats = {};
+  for (const a of acoesDaTemporada()) {
+    pontos[a.playerId] = (pontos[a.playerId] || 0) + a.points;
+    const s = (stats[a.playerId] = stats[a.playerId] || { win: 0, goal: 0, assist: 0, gaia: 0, yellow: 0 });
+    s[a.type] = (s[a.type] || 0) + 1;
+  }
+  const vazio = { win: 0, goal: 0, assist: 0, gaia: 0, yellow: 0 };
   return state.players
-    .map(p => ({ ...p, pts: pontos[p.id] || 0 }))
+    .map(p => ({ ...p, pts: pontos[p.id] || 0, stats: stats[p.id] || { ...vazio } }))
     .sort((a, b) => b.pts - a.pts);
+}
+
+/* Líder em um tipo de ação (artilheiro/garçom/vitórias) */
+function liderEm(rank, tipo) {
+  const ordenado = rank.filter(p => p.stats[tipo] > 0).sort((a, b) => b.stats[tipo] - a.stats[tipo]);
+  return ordenado[0] || null;
 }
 function renderScores() {
   const rank = calcularRanking();
@@ -462,36 +540,100 @@ function renderScores() {
   } else {
     podium.innerHTML = `<p class="muted">Ainda não há pontos. Bora jogar! ⚽</p>`;
   }
+
+  // tabela com o que cada jogador fez (gols, assistências, etc.)
+  const miniStats = (s) => {
+    const partes = [];
+    if (s.goal)   partes.push(`⚽ ${s.goal}`);
+    if (s.assist) partes.push(`🅰️ ${s.assist}`);
+    if (s.win)    partes.push(`🏅 ${s.win}`);
+    if (s.gaia)   partes.push(`😂 ${s.gaia}`);
+    if (s.yellow) partes.push(`🟨 ${s.yellow}`);
+    return partes.length ? partes.join(" · ") : "—";
+  };
   $("#rankBody").innerHTML = rank.map((p, i) => `
     <tr>
       <td>${i + 1}º</td>
-      <td><div class="rank-player"><img src="${fotoOuPadrao(p)}" alt="">${p.nick}</div></td>
+      <td>
+        <div class="rank-player"><img src="${fotoOuPadrao(p)}" alt="">${p.nick}</div>
+        <div class="rank-stats">${miniStats(p.stats)}</div>
+      </td>
       <td>${p.pts}</td>
     </tr>`).join("") || `<tr><td colspan="3" class="muted">Sem jogadores ainda.</td></tr>`;
+
+  renderDestaques(rank);
   renderResumos();
   renderStatusTemporada();
+  renderRecentActions();
 }
+
+/* ⭐ Destaques: artilheiro, melhor garçom (assistências) e mais vitórias */
+function renderDestaques(rank) {
+  const cont = $("#destaques");
+  if (!cont) return;
+  const cards = [
+    { tipo: "goal",   titulo: "Artilheiro",      emoji: "⚽", sufixo: "gols",      cls: "dest-amarelo" },
+    { tipo: "assist", titulo: "Rei das Assist.", emoji: "🅰️", sufixo: "assist.",   cls: "dest-azul" },
+    { tipo: "win",    titulo: "Mais Vitórias",   emoji: "🏅", sufixo: "vitórias",  cls: "dest-verde" }
+  ];
+  cont.innerHTML = cards.map(c => {
+    const lider = liderEm(rank, c.tipo);
+    return `<div class="dest ${c.cls}">
+      <div class="dest-cap">${c.emoji} ${c.titulo}</div>
+      ${lider ? `
+        <img src="${fotoOuPadrao(lider)}" alt="">
+        <div class="dest-nick">${lider.nick}</div>
+        <div class="dest-num">${lider.stats[c.tipo]} <span>${c.sufixo}</span></div>`
+      : `<div class="dest-vazio">Ninguém ainda</div>`}
+    </div>`;
+  }).join("");
+}
+
+/* 📰 Resumo de cada quarta — versão bem visual */
 function renderResumos() {
   const porData = {};
   for (const a of acoesDaTemporada()) (porData[a.dateKey] = porData[a.dateKey] || []).push(a);
   const datas = Object.keys(porData).sort().reverse();
   const cont = $("#matchSummaries");
   if (!datas.length) { cont.innerHTML = `<p class="muted">Nenhuma quarta registrada ainda.</p>`; return; }
+
   cont.innerHTML = datas.map(d => {
     const acoes = porData[d];
-    const tipos = {};
-    for (const a of acoes) (tipos[a.type] = tipos[a.type] || []).push(a.nick);
-    const linha = (tipo, emoji) => tipos[tipo]
-      ? `<span class="tag">${emoji} ${ROTULO[tipo]}: ${tipos[tipo].join(", ")}</span>` : "";
-    const somaDia = {};
-    for (const a of acoes) somaDia[a.nick] = (somaDia[a.nick] || 0) + a.points;
-    const craque = Object.entries(somaDia).sort((x, y) => y[1] - x[1])[0];
+    // contagem por tipo e por jogador
+    const totalTipo = { win: 0, goal: 0, assist: 0, gaia: 0, yellow: 0 };
+    const somaDia = {}, fotoDe = {};
+    for (const a of acoes) {
+      totalTipo[a.type] = (totalTipo[a.type] || 0) + 1;
+      somaDia[a.nick] = (somaDia[a.nick] || 0) + a.points;
+      const p = state.players.find(x => x.id === a.playerId);
+      fotoDe[a.nick] = fotoOuPadrao(p);
+    }
+    const ranked = Object.entries(somaDia).sort((x, y) => y[1] - x[1]);
+    const craque = ranked[0];
+
+    // blocos com placar de cada tipo
+    const bloco = (tipo) => `
+      <div class="rs-block rs-${tipo}">
+        <div class="rs-emoji">${EMOJI[tipo]}</div>
+        <div class="rs-num">${totalTipo[tipo] || 0}</div>
+        <div class="rs-lbl">${ROTULO[tipo]}</div>
+      </div>`;
+
+    // quem pontuou no dia (mini-placar)
+    const placar = ranked.map(([nick, pts]) => `
+      <div class="rs-player">
+        <img src="${fotoDe[nick]}" alt="">
+        <span class="rs-pnick">${escapeHtml(nick)}</span>
+        <span class="rs-ppts">${pts} pts</span>
+      </div>`).join("");
+
     return `<div class="match">
-      <h4>📅 Quarta ${ddmm(d)} ${craque ? `— Craque: <b>${craque[0]}</b> (${craque[1]} pts)` : ""}</h4>
-      <div class="line">
-        ${linha("goal", "⚽")}${linha("assist", "🅰️")}${linha("win", "🏅")}
-        ${linha("gaia", "😂")}${linha("yellow", "🟨")}
+      <div class="rs-head">
+        <h4>📅 Quarta ${ddmm(d)}</h4>
+        ${craque ? `<div class="rs-craque">🌟 Craque do dia: <b>${escapeHtml(craque[0])}</b> (${craque[1]} pts)</div>` : ""}
       </div>
+      <div class="rs-blocks">${bloco("goal")}${bloco("assist")}${bloco("win")}${bloco("gaia")}${bloco("yellow")}</div>
+      <div class="rs-players">${placar}</div>
     </div>`;
   }).join("");
 }
@@ -641,8 +783,41 @@ function renderJanela() {
   $("#actionPanel").classList.toggle("hidden", !me);
   document.querySelectorAll(".btn.act").forEach(b => b.disabled = !aberta);
 }
+/* Caixa de seleção de quem recebe os pontos (mantém a escolha; padrão = você) */
+function renderActionPlayers() {
+  const sel = $("#actionPlayer");
+  if (!sel) return;
+  const me = meuJogador();
+  const prev = sel.value;
+  sel.innerHTML = state.players
+    .slice().sort((a, b) => a.nick.localeCompare(b.nick))
+    .map(p => `<option value="${p.id}">${escapeHtml(p.nick)}${me && p.id === me.id ? " (você)" : ""}</option>`).join("");
+  if (prev && state.players.some(p => p.id === prev)) sel.value = prev;
+  else if (me) sel.value = me.id;
+}
+
+/* Últimas ações lançadas, com botão de apagar (caso tenha errado) */
+function renderRecentActions() {
+  const cont = $("#recentActions");
+  if (!cont) return;
+  const recentes = acoesDaTemporada()
+    .slice().sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+    .slice(0, 20);
+  cont.innerHTML = recentes.length
+    ? recentes.map(a => `
+      <div class="recent-item">
+        <span class="ri-emoji">${EMOJI[a.type]}</span>
+        <span class="ri-nick">${escapeHtml(a.nick)}</span>
+        <span class="ri-pts ${a.points < 0 ? "neg" : ""}">${a.points > 0 ? "+" : ""}${a.points}</span>
+        <span class="ri-date">${ddmm(a.dateKey)}</span>
+        <button class="ri-del" data-id="${a.id}" title="Apagar esta ação">✕</button>
+      </div>`).join("")
+    : `<p class="muted tiny">Nenhuma ação lançada ainda.</p>`;
+}
+
 function renderTudo() {
-  renderLogin(); renderVotacao(); renderLista(); renderJanela(); renderScores();
+  renderLogin(); renderVotacao(); renderLista(); renderJanela();
+  renderActionPlayers(); renderScores();
 }
 
 /* =====================================================================
@@ -677,8 +852,8 @@ function seedDemo() {
     mem.votes[pid] = { playerId: pid, nick: mem.players[pid].nick, agree, justification, updatedAt: { seconds: 2000 + i } };
   };
   vote(0, true); vote(1, true); vote(4, true); vote(5, true);
-  vote(2, false, "Discordo da regra 4: 10 min é pouco, devia ser 12 minutos por partida.");
-  vote(3, false, "Regra 8 é injusta — empate devia ser empate, ninguém leva vantagem.");
+  vote(2, false, "Discordo da regra 3: 10 min é pouco, a partida devia ser de 12 minutos.");
+  vote(3, false, "Regra 7 é injusta — empate devia ser empate, ninguém leva vantagem.");
 
   const ciclo = cicloAtual();
   [0, 1, 2, 3, 4, 5, 6].forEach((i, k) => {

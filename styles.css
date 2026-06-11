@@ -278,10 +278,79 @@ body::before {
 .rank-player { display: flex; align-items: center; gap: 9px; }
 .rank-player img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background:#0b1a12; }
 
-/* ---------- Resumo das partidas ---------- */
-.match { border: 1px solid var(--linha); border-radius: 12px; padding: 14px; margin-bottom: 12px; background: var(--card-2); }
-.match h4 { color: var(--amarelo); margin-bottom: 8px; }
-.match .line { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+/* ---------- Resumo das partidas (visual) ---------- */
+.match {
+  border: 1px solid var(--linha); border-radius: 14px; padding: 16px; margin-bottom: 14px;
+  background: linear-gradient(180deg, rgba(0,211,95,.06), var(--card-2));
+}
+.rs-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.rs-head h4 { color: var(--amarelo); font-size: 1.05rem; }
+.rs-craque { font-size: .85rem; background: rgba(255,212,0,.14); border: 1px solid rgba(255,212,0,.3); padding: 4px 10px; border-radius: 999px; }
+.rs-blocks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+.rs-block { text-align: center; border-radius: 12px; padding: 10px 6px; background: rgba(255,255,255,.04); border: 1px solid var(--linha); }
+.rs-emoji { font-size: 1.2rem; }
+.rs-num { font-size: 1.4rem; font-weight: 900; }
+.rs-lbl { font-size: .64rem; color: var(--muted); }
+.rs-goal   { border-bottom: 3px solid var(--amarelo); }
+.rs-assist { border-bottom: 3px solid var(--azul); }
+.rs-win    { border-bottom: 3px solid var(--verde); }
+.rs-gaia   { border-bottom: 3px solid #9b8cff; }
+.rs-yellow { border-bottom: 3px solid var(--vermelho); }
+.rs-players { display: flex; flex-wrap: wrap; gap: 8px; }
+.rs-player { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.05); border: 1px solid var(--linha); padding: 4px 10px 4px 4px; border-radius: 999px; }
+.rs-player img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background:#0b1a12; }
+.rs-pnick { font-weight: 700; font-size: .82rem; }
+.rs-ppts { font-size: .76rem; color: var(--verde); font-weight: 800; }
+@media (max-width: 560px) { .rs-blocks { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---------- Cronômetro ---------- */
+.crono-card { text-align: center; }
+.crono-display {
+  font-variant-numeric: tabular-nums; font-size: 4rem; font-weight: 900; letter-spacing: 2px;
+  margin: 10px 0 14px; text-shadow: 0 0 22px rgba(0,211,95,.35);
+}
+.crono-display.acabando { color: var(--amarelo); text-shadow: 0 0 22px rgba(255,212,0,.5); animation: pulse 1s infinite; }
+.crono-display.fim { color: var(--vermelho); text-shadow: 0 0 22px rgba(255,77,77,.6); }
+@keyframes pulse { 50% { opacity: .5; } }
+.crono-buttons { display: flex; gap: 10px; justify-content: center; }
+.crono-buttons .btn { min-width: 130px; }
+
+/* ---------- Caixa de jogador nas ações ---------- */
+.action-player-label { display: grid; gap: 6px; font-weight: 800; font-size: .9rem; margin-bottom: 14px; }
+.action-player-label select {
+  padding: 11px; border-radius: 10px; border: 1px solid var(--linha);
+  background: rgba(0,0,0,.3); color: var(--texto); font-size: 1rem;
+}
+.action-player-label select option { background: #0c1610; }
+
+/* ---------- Ações recentes (apagar) ---------- */
+.recent-actions { margin-top: 16px; }
+.recent-title { font-weight: 800; font-size: .9rem; margin-bottom: 8px; }
+.recent-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 9px; background: var(--card-2); border: 1px solid var(--linha); margin-bottom: 6px; }
+.ri-emoji { font-size: 1.05rem; }
+.ri-nick { font-weight: 700; }
+.ri-pts { font-weight: 800; color: var(--verde); }
+.ri-pts.neg { color: var(--vermelho); }
+.ri-date { margin-left: auto; font-size: .74rem; color: var(--muted); }
+.ri-del { background: rgba(255,77,77,.15); color: #ff9a9a; border: 1px solid rgba(255,77,77,.3); border-radius: 8px; width: 28px; height: 28px; cursor: pointer; font-weight: 800; flex: 0 0 auto; }
+.ri-del:hover { background: var(--vermelho); color: #fff; }
+
+/* ---------- Destaques ---------- */
+.destaques { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.dest { text-align: center; border-radius: 14px; padding: 14px 10px; border: 1px solid var(--linha); background: var(--card-2); }
+.dest-cap { font-weight: 800; font-size: .8rem; margin-bottom: 8px; }
+.dest img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; background:#0b1a12; }
+.dest-nick { font-weight: 800; margin-top: 6px; }
+.dest-num { font-size: 1.3rem; font-weight: 900; }
+.dest-num span { font-size: .7rem; font-weight: 600; color: var(--muted); }
+.dest-vazio { color: var(--muted); padding: 18px 0; font-size: .85rem; }
+.dest-amarelo { border-top: 3px solid var(--amarelo); }
+.dest-azul { border-top: 3px solid var(--azul); }
+.dest-verde { border-top: 3px solid var(--verde); }
+@media (max-width: 560px) { .destaques { grid-template-columns: 1fr; } }
+
+/* ---------- Stats no ranking ---------- */
+.rank-stats { font-size: .76rem; color: var(--muted); margin-top: 3px; margin-left: 39px; }
 
 /* ---------- Card de campeões ---------- */
 .champion-wrap { margin-top: 16px; display: grid; gap: 12px; justify-items: center; }

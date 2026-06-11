@@ -47,6 +47,17 @@
   <!-- ===================== PARTE 1 — REGRAS & LISTA ===================== -->
   <main id="parte1" class="view active">
 
+    <!-- CRONÔMETRO DA PARTIDA -->
+    <section class="card crono-card">
+      <h2 class="section-title">⏱️ Cronômetro da Partida</h2>
+      <p class="muted center">Partida de 10 minutos (ou 3 gols). Pause na troca de time e nas faltas demoradas.</p>
+      <div id="cronoDisplay" class="crono-display">10:00</div>
+      <div class="crono-buttons">
+        <button id="cronoStart" class="btn btn-verde">▶️ Iniciar</button>
+        <button id="cronoReset" class="btn btn-ghost">↺ Zerar</button>
+      </div>
+    </section>
+
     <!-- A) AS REGRAS -->
     <section class="card">
       <h2 class="section-title">📜 As Regras do Real Fut</h2>
@@ -140,13 +151,19 @@
 
     <!-- REGISTRAR AÇÕES -->
     <section class="card">
-      <h2 class="section-title">✍️ Registrar minhas ações</h2>
+      <h2 class="section-title">✍️ Registrar ações</h2>
       <p class="muted">
-        Cada um lança as <b>próprias</b> jogadas. Liberado só nas <b>quartas, das 19:50 às 23h</b> (horário de Brasília).
+        Escolha o jogador e toque na jogada — os pontos vão para o <b>nome selecionado</b>.
+        Liberado só nas <b>quartas, das 19:50 às 23h</b> (horário de Brasília).
       </p>
-      <p id="actionWho" class="muted center">Entre com seu nome para lançar ações.</p>
+      <p id="actionWho" class="muted center">Entre na sua conta para lançar ações.</p>
 
       <div id="actionPanel" class="action-panel hidden">
+        <label class="action-player-label">
+          👤 Lançar pontos para:
+          <select id="actionPlayer"></select>
+        </label>
+
         <div class="pts-legend">
           <span class="tag tag-verde">Vitória +8</span>
           <span class="tag tag-amarelo">Gol +5</span>
@@ -162,7 +179,19 @@
           <button class="btn act" data-type="yellow">🟨 Cartão amarelo <small>−3</small></button>
         </div>
         <p id="actionFeedback" class="action-feedback"></p>
+
+        <!-- ações recentes, com botão de apagar (caso tenha lançado errado) -->
+        <div class="recent-actions">
+          <div class="recent-title">🧾 Últimas ações lançadas <span class="muted tiny">(toque no ✕ para apagar)</span></div>
+          <div id="recentActions"></div>
+        </div>
       </div>
+    </section>
+
+    <!-- DESTAQUES -->
+    <section class="card">
+      <h2 class="section-title">⭐ Destaques da Temporada</h2>
+      <div id="destaques" class="destaques"><!-- via JS --></div>
     </section>
 
     <!-- RANKING -->
