@@ -287,30 +287,83 @@ pintaCrono();
 /* =====================================================================
    8) CADASTRO (com senha pessoal)
    ===================================================================== */
-let fotoBase64 = "";
 $("#btnOpenRegister").addEventListener("click", () => openModal("registerModal"));
-$("#regPhoto").addEventListener("change", async (e) => {
+
+/* ---- Recortador de foto (arrastar + zoom), sem biblioteca externa ---- */
+const crop = { img: null, B: 200, cover: 1, zoom: 1, tx: 0, ty: 0 };
+const cropImgEl = () => $("#cropImg");
+
+$("#regPhoto").addEventListener("change", (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-  fotoBase64 = await comprimirImagem(file);
-  const prev = $("#regPreview");
-  prev.src = fotoBase64; prev.classList.remove("hidden");
+  if (!file) { resetCrop(); return; }
+  const im = new Image();
+  im.onload = () => {
+    crop.img = im;
+    crop.cover = Math.max(crop.B / im.naturalWidth, crop.B / im.naturalHeight);
+    crop.zoom = 1;
+    $("#cropZoom").value = 1;
+    cropImgEl().src = im.src;
+    layoutCrop(true);
+    $("#cropArea").classList.remove("hidden");
+  };
+  im.src = URL.createObjectURL(file);
 });
-function comprimirImagem(file) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const max = 256;
-      let { width, height } = img;
-      if (width > height && width > max) { height = height * max / width; width = max; }
-      else if (height > max) { width = width * max / height; height = max; }
-      const canvas = document.createElement("canvas");
-      canvas.width = width; canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.6));
-    };
-    img.src = URL.createObjectURL(file);
-  });
+
+function clampCrop(w, h) {
+  crop.tx = Math.min(0, Math.max(crop.B - w, crop.tx));
+  crop.ty = Math.min(0, Math.max(crop.B - h, crop.ty));
+}
+function layoutCrop(center) {
+  const ds = crop.cover * crop.zoom;
+  const w = crop.img.naturalWidth * ds, h = crop.img.naturalHeight * ds;
+  if (center) { crop.tx = (crop.B - w) / 2; crop.ty = (crop.B - h) / 2; }
+  clampCrop(w, h);
+  const el = cropImgEl();
+  el.style.width = w + "px"; el.style.height = h + "px";
+  el.style.left = crop.tx + "px"; el.style.top = crop.ty + "px";
+}
+$("#cropZoom").addEventListener("input", (e) => {
+  if (!crop.img) return;
+  const oldDs = crop.cover * crop.zoom;
+  const cx = (crop.B / 2 - crop.tx) / oldDs, cy = (crop.B / 2 - crop.ty) / oldDs;
+  crop.zoom = +e.target.value;
+  const ds = crop.cover * crop.zoom;
+  crop.tx = crop.B / 2 - cx * ds; crop.ty = crop.B / 2 - cy * ds;
+  layoutCrop(false);
+});
+/* arrastar (mouse e toque) */
+let cropDrag = false, cropLX = 0, cropLY = 0;
+const cropBox = $("#cropBox");
+cropBox.addEventListener("pointerdown", (e) => {
+  if (!crop.img) return;
+  cropDrag = true; cropLX = e.clientX; cropLY = e.clientY;
+  cropBox.setPointerCapture(e.pointerId);
+});
+cropBox.addEventListener("pointermove", (e) => {
+  if (!cropDrag) return;
+  crop.tx += e.clientX - cropLX; crop.ty += e.clientY - cropLY;
+  cropLX = e.clientX; cropLY = e.clientY;
+  layoutCrop(false);
+});
+const soltar = () => { cropDrag = false; };
+cropBox.addEventListener("pointerup", soltar);
+cropBox.addEventListener("pointercancel", soltar);
+
+/* gera a foto recortada (256x256) a partir do enquadramento atual */
+function fotoRecortada() {
+  if (!crop.img) return "";
+  const O = 256, ds = crop.cover * crop.zoom;
+  const sx = -crop.tx / ds, sy = -crop.ty / ds, s = crop.B / ds;
+  const canvas = document.createElement("canvas");
+  canvas.width = O; canvas.height = O;
+  canvas.getContext("2d").drawImage(crop.img, sx, sy, s, s, 0, 0, O, O);
+  return canvas.toDataURL("image/jpeg", 0.72);
+}
+function resetCrop() {
+  crop.img = null;
+  $("#cropArea").classList.add("hidden");
+  $("#cropZoom").value = 1;
+  $("#regPhoto").value = "";
 }
 $("#btnDoRegister").addEventListener("click", async () => {
   if (bloqueado) return alert("Configure o Firebase primeiro (veja o aviso no topo).");
@@ -334,12 +387,11 @@ $("#btnDoRegister").addEventListener("click", async () => {
   const id = "p_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
   const passwordHash = await sha256(userPass);
   await dbSet("players", id, {
-    name, nick, gk, photo: fotoBase64 || "", passwordHash, grupo: grpId, createdAt: stamp()
+    name, nick, gk, photo: fotoRecortada(), passwordHash, grupo: grpId, createdAt: stamp()
   });
-  fotoBase64 = "";
   $("#regPass").value = $("#regName").value = $("#regNick").value = $("#regUserPass").value = "";
   $("#regGK").checked = false;
-  $("#regPreview").classList.add("hidden");
+  resetCrop();
 
   entrarNoGrupo(grpId, id); // entra logado, no grupo certo
 });

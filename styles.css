@@ -444,6 +444,22 @@ body::before {
 .modal-box select option { background: #0c1610; }
 .check-line { flex-direction: row !important; align-items: center; gap: 8px !important; }
 .reg-preview { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; justify-self: center; border: 3px solid var(--amarelo); }
+
+/* recortador de foto */
+.crop-area { display: grid; gap: 8px; justify-items: center; }
+.crop-box {
+  position: relative; width: 200px; height: 200px; overflow: hidden;
+  border-radius: 12px; background: #05101f; cursor: grab; touch-action: none; user-select: none;
+}
+.crop-box:active { cursor: grabbing; }
+.crop-box #cropImg { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
+.crop-ring {
+  position: absolute; inset: 0; pointer-events: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.55); /* escurece fora do círculo */
+  outline: 2px solid rgba(255,212,0,.9);
+}
+#cropZoom { width: 200px; accent-color: var(--verde); }
 .modal-actions { display: flex; gap: 10px; margin-top: 4px; }
 .modal-actions .btn { flex: 1; }
 .error-msg { color: var(--vermelho); font-size: .84rem; font-weight: 700; min-height: 18px; }

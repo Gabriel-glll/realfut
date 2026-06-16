@@ -248,7 +248,15 @@
       <label>Foto de perfil (opcional)
         <input type="file" id="regPhoto" accept="image/*" />
       </label>
-      <img id="regPreview" class="reg-preview hidden" alt="" />
+      <!-- recortador: arraste a foto e use o zoom para enquadrar -->
+      <div id="cropArea" class="crop-area hidden">
+        <div class="crop-box" id="cropBox">
+          <img id="cropImg" alt="" draggable="false" />
+          <div class="crop-ring"></div>
+        </div>
+        <input type="range" id="cropZoom" min="1" max="3" step="0.01" value="1" />
+        <p class="muted tiny center">Arraste a foto e use a barrinha pra dar zoom. O círculo é como vai ficar.</p>
+      </div>
       <p id="regError" class="error-msg"></p>
       <div class="modal-actions">
         <button id="btnDoRegister" class="btn btn-verde">Cadastrar</button>
