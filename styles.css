@@ -357,7 +357,7 @@ body::before {
 /* ---------- Stats no ranking ---------- */
 .rank-stats { font-size: .76rem; color: var(--muted); margin-top: 3px; margin-left: 39px; }
 
-/* ---------- Cards de campeões (estilo pôster) ---------- */
+/* ---------- Cards de campeões (fundo: card-bg.jpg) ---------- */
 .champ-cards { display: grid; gap: 22px; margin-top: 10px; }
 .champ-block { display: grid; gap: 10px; justify-items: center; }
 .champ-empty {
@@ -365,66 +365,63 @@ body::before {
   border-radius: 14px; padding: 22px; background: var(--card-2);
 }
 
-/* moldura dourada */
+/* a imagem de fundo já traz a moldura dourada + estádio */
 .champ-card {
   position: relative; width: 100%; max-width: 420px; margin: 0 auto;
-  padding: 5px; border-radius: 22px;
-  background: linear-gradient(150deg, #7a5e12, #ffe98a 22%, #b8860b 45%, #fff0b0 65%, #8a6d1a 88%);
+  aspect-ratio: 1024 / 1536;
+  background: #06101f url("card-bg.jpg") center / cover no-repeat;
+  border-radius: 12px; overflow: hidden;
   box-shadow: 0 16px 44px rgba(0,0,0,.5);
 }
+/* conteúdo dentro da área aberta da moldura (padding lateral evita as bordas) */
 .cc-inner {
-  position: relative; overflow: hidden;
-  border-radius: 18px; padding: 20px 16px 16px; text-align: center;
-  /* só gradientes lineares (compatível com a geração de imagem do html2canvas) */
-  background:
-    linear-gradient(180deg, rgba(255,205,60,.22), transparent 42%),
-    linear-gradient(0deg, rgba(255,170,20,.24), transparent 42%),
-    linear-gradient(180deg, #0c1c3a, #070d18 55%, #0b1730);
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 8% 15% 8.5%; text-align: center;
 }
-/* cantos dourados decorativos */
-.cc-corner { position: absolute; width: 26px; height: 26px; border: 3px solid #ffd86b; opacity: .85; }
-.cc-corner.tl { top: 8px; left: 8px; border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }
-.cc-corner.tr { top: 8px; right: 8px; border-left: 0; border-bottom: 0; border-radius: 0 8px 0 0; }
-.cc-corner.bl { bottom: 8px; left: 8px; border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
-.cc-corner.br { bottom: 8px; right: 8px; border-left: 0; border-top: 0; border-radius: 0 0 8px 0; }
-
-.cc-season { color: #ffe08a; font-size: .7rem; letter-spacing: 4px; font-weight: 800; }
+.cc-head { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
+.cc-season { color: #ffe08a; font-size: .62rem; letter-spacing: 3px; font-weight: 800; text-shadow: 0 1px 3px #000; }
 .cc-name {
-  font-size: 2.5rem; font-weight: 900; font-style: italic; line-height: 1;
-  text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 2px;
-  color: #ffd86b; text-shadow: 0 2px 0 #6b520f, 0 0 26px rgba(255,200,40,.55);
-  word-break: break-word;
+  font-size: 2.2rem; font-weight: 900; font-style: italic; line-height: 1;
+  text-transform: uppercase; letter-spacing: 1px; color: #ffd86b; word-break: break-word;
+  text-shadow: 0 2px 0 #4a380a, 0 0 18px rgba(255,200,40,.6), 0 2px 8px #000;
 }
 .cc-role {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  color: #eaf3ec; font-size: .8rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: #fff; font-size: .68rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  text-shadow: 0 1px 3px #000;
 }
-.cc-dash { width: 34px; height: 5px; border-radius: 3px; background: #ffd400; }
-.cc-dash + .cc-dash, .cc-role .cc-dash:last-child { background: #00d35f; }
-.cc-flag { font-size: 1.2rem; margin-top: 4px; }
+.cc-dash { width: 26px; height: 4px; border-radius: 3px; background: #ffd400; }
+.cc-role .cc-dash:last-child { background: #1f7bff; }
+.cc-flag { font-size: 1.1rem; text-shadow: 0 1px 3px #000; }
 
-.cc-photo { margin: 10px auto 6px; width: 156px; height: 156px; }
+.cc-photo { width: 44%; aspect-ratio: 1; }
 .cc-photo img {
   width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
   border: 4px solid #ffd86b; background: #0b1a12;
-  box-shadow: 0 0 34px rgba(255,200,40,.5);
+  box-shadow: 0 0 30px rgba(255,200,40,.55), 0 6px 18px #000;
 }
-.cc-pts { color: #ffd86b; font-weight: 900; font-size: 1.5rem; line-height: 1; margin-bottom: 12px; }
-.cc-pts span { font-size: .62rem; letter-spacing: 2px; color: #ffe08a; font-weight: 800; }
 
-.cc-stats { display: grid; gap: 8px; }
-.cc-row { display: flex; gap: 8px; justify-content: center; }
-.cc-stat {
-  flex: 1; max-width: 130px; text-align: center; border-radius: 12px; padding: 9px 4px;
-  background: linear-gradient(180deg, rgba(255,215,90,.08), rgba(0,0,0,.28));
-  border: 1px solid rgba(255,215,90,.38);
+/* painel escuro pros números lerem bem sobre o gramado claro */
+.cc-bottom {
+  width: 100%;
+  background: rgba(5,11,22,.72); border: 1px solid rgba(255,215,90,.45);
+  border-radius: 14px; padding: 9px 8px;
 }
-.cc-ic { font-size: 1.35rem; line-height: 1.1; }
-.cc-lbl { font-size: .58rem; letter-spacing: 1px; color: #ffe08a; font-weight: 800; }
-.cc-val { font-size: 1.7rem; font-weight: 900; color: #ffd86b; line-height: 1.1; }
+.cc-pts { color: #ffd86b; font-weight: 900; font-size: 1.15rem; line-height: 1; margin-bottom: 8px; text-shadow: 0 1px 3px #000; }
+.cc-pts span { font-size: .55rem; letter-spacing: 2px; color: #ffe08a; font-weight: 800; }
+.cc-stats { display: grid; gap: 6px; }
+.cc-row { display: flex; gap: 6px; justify-content: center; }
+.cc-stat {
+  flex: 1; max-width: 120px; text-align: center; border-radius: 10px; padding: 6px 3px;
+  background: rgba(0,0,0,.4); border: 1px solid rgba(255,215,90,.4);
+}
+.cc-ic { font-size: 1.05rem; line-height: 1.1; }
+.cc-lbl { font-size: .5rem; letter-spacing: .5px; color: #ffe08a; font-weight: 800; }
+.cc-val { font-size: 1.25rem; font-weight: 900; color: #ffd86b; line-height: 1.15; }
 .cc-download { max-width: 420px; width: 100%; }
 
-@media (max-width: 460px) { .cc-name { font-size: 2rem; } .cc-photo { width: 130px; height: 130px; } }
+@media (max-width: 460px) { .cc-name { font-size: 1.8rem; } .cc-lbl { font-size: .46rem; } }
 
 /* ---------- Modais ---------- */
 .modal { position: fixed; inset: 0; z-index: 60; background: rgba(2,8,5,.7); display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(3px); }

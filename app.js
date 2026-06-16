@@ -728,23 +728,18 @@ function cardCampeaoHTML(p, cat) {
   return `<div class="champ-block">
     <div class="champ-card" id="${id}">
       <div class="cc-inner">
-        <div class="cc-corner tl"></div><div class="cc-corner tr"></div>
-        <div class="cc-corner bl"></div><div class="cc-corner br"></div>
-        <div class="cc-season">★ TEMPORADA 2026 ★</div>
-        <div class="cc-name">${escapeHtml(p.nick)}</div>
-        <div class="cc-role"><span class="cc-dash"></span>${cat.role} ${cat.emoji}<span class="cc-dash"></span></div>
-        <div class="cc-flag">🇧🇷</div>
+        <div class="cc-head">
+          <div class="cc-season">★ TEMPORADA 2026 ★</div>
+          <div class="cc-name">${escapeHtml(p.nick)}</div>
+          <div class="cc-role"><span class="cc-dash"></span>${cat.role} ${cat.emoji}<span class="cc-dash"></span></div>
+          <div class="cc-flag">🇧🇷</div>
+        </div>
         <div class="cc-photo"><img src="${fotoOuPadrao(p)}" alt=""></div>
-        <div class="cc-pts">${p.pts} <span>PONTOS</span></div>
-        <div class="cc-stats">
-          <div class="cc-row">
-            ${box("⚽", "GOLS", s.goal)}
-            ${box("🅰️", "ASSIST.", s.assist)}
-            ${box("🏆", "VITÓRIAS", s.win)}
-          </div>
-          <div class="cc-row">
-            ${box("😂", "GAIAS", s.gaia)}
-            ${box("🟨", "C. AMARELOS", s.yellow)}
+        <div class="cc-bottom">
+          <div class="cc-pts">${p.pts} <span>PONTOS</span></div>
+          <div class="cc-stats">
+            <div class="cc-row">${box("⚽", "GOLS", s.goal)}${box("🅰️", "ASSIST.", s.assist)}${box("🏆", "VITÓRIAS", s.win)}</div>
+            <div class="cc-row">${box("😂", "GAIAS", s.gaia)}${box("🟨", "C. AMARELOS", s.yellow)}</div>
           </div>
         </div>
       </div>
