@@ -627,6 +627,7 @@ function renderScores() {
     </tr>`).join("") || `<tr><td colspan="3" class="muted">Sem jogadores ainda.</td></tr>`;
 
   renderDestaques(rank);
+  renderChampCards(rank);
   renderResumos();
   renderStatusTemporada();
   renderRecentActions();
@@ -711,30 +712,73 @@ function renderStatusTemporada() {
 }
 
 /* =====================================================================
-   15) CARD COMEMORATIVO
+   15) CARDS DE CAMPEÕES (estilo pôster, com a foto do jogador)
    ===================================================================== */
-$("#btnMakeCard").addEventListener("click", () => {
-  const rank = calcularRanking().filter(p => p.pts > 0).slice(0, 3);
-  if (!rank.length) return alert("Ainda não há pontuação para gerar o card.");
-  const pos = ["🥇", "🥈", "🥉"];
-  $("#championCard").innerHTML = `
-    <h3>🏆 Campeões Real Fut</h3>
-    <div class="sub">Temporada 01/06/2026 — 31/12/2026</div>
-    ${rank.map((p, i) => `
-      <div class="champ-row">
-        <span class="pos">${pos[i]}</span>
-        <img src="${fotoOuPadrao(p)}" alt="">
-        <span class="who"><b>${p.nick}</b>${p.pts} pontos</span>
-      </div>`).join("")}
-  `;
-  $("#championCardWrap").classList.remove("hidden");
-});
-$("#btnDownloadCard").addEventListener("click", async () => {
-  const canvas = await html2canvas($("#championCard"), { backgroundColor: null, scale: 2 });
-  const link = document.createElement("a");
-  link.download = "campeoes-real-fut.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
+const CATEGORIAS_CARD = [
+  { key: "goal",   role: "ARTILHEIRO",            emoji: "⚽" },
+  { key: "assist", role: "REI DAS ASSISTÊNCIAS",  emoji: "🅰️" },
+  { key: "win",    role: "MAIOR CAMPEÃO",          emoji: "🏆" }
+];
+
+function cardCampeaoHTML(p, cat) {
+  const s = p.stats;
+  const id = "cc-" + cat.key;
+  const box = (emoji, lbl, val) =>
+    `<div class="cc-stat"><div class="cc-ic">${emoji}</div><div class="cc-lbl">${lbl}</div><div class="cc-val">${val}</div></div>`;
+  return `<div class="champ-block">
+    <div class="champ-card" id="${id}">
+      <div class="cc-inner">
+        <div class="cc-corner tl"></div><div class="cc-corner tr"></div>
+        <div class="cc-corner bl"></div><div class="cc-corner br"></div>
+        <div class="cc-season">★ TEMPORADA 2026 ★</div>
+        <div class="cc-name">${escapeHtml(p.nick)}</div>
+        <div class="cc-role"><span class="cc-dash"></span>${cat.role} ${cat.emoji}<span class="cc-dash"></span></div>
+        <div class="cc-flag">🇧🇷</div>
+        <div class="cc-photo"><img src="${fotoOuPadrao(p)}" alt=""></div>
+        <div class="cc-pts">${p.pts} <span>PONTOS</span></div>
+        <div class="cc-stats">
+          <div class="cc-row">
+            ${box("⚽", "GOLS", s.goal)}
+            ${box("🅰️", "ASSIST.", s.assist)}
+            ${box("🏆", "VITÓRIAS", s.win)}
+          </div>
+          <div class="cc-row">
+            ${box("😂", "GAIAS", s.gaia)}
+            ${box("🟨", "C. AMARELOS", s.yellow)}
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-amarelo cc-download" data-card="${id}" data-nome="${cat.key}-${escapeHtml(p.nick)}">⬇️ Baixar card de ${escapeHtml(p.nick)}</button>
+  </div>`;
+}
+
+function renderChampCards(rank) {
+  const cont = $("#champCards");
+  if (!cont) return;
+  cont.innerHTML = CATEGORIAS_CARD.map(cat => {
+    const lider = liderEm(rank, cat.key);
+    return lider
+      ? cardCampeaoHTML(lider, cat)
+      : `<div class="champ-empty">${cat.emoji} Sem ${cat.role.toLowerCase()} ainda — bora pontuar!</div>`;
+  }).join("");
+}
+
+/* baixar um card como imagem (PNG) */
+$("#champCards").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".cc-download");
+  if (!btn) return;
+  const card = document.getElementById(btn.dataset.card);
+  const txtOrig = btn.textContent;
+  btn.textContent = "⏳ Gerando imagem...";
+  try {
+    const canvas = await html2canvas(card, { backgroundColor: null, scale: 2, useCORS: true });
+    const a = document.createElement("a");
+    a.download = `card-${btn.dataset.nome}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  } catch (_) { alert("Não consegui gerar a imagem agora. Tente de novo."); }
+  btn.textContent = txtOrig;
 });
 
 /* =====================================================================

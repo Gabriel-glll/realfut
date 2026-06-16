@@ -357,22 +357,74 @@ body::before {
 /* ---------- Stats no ranking ---------- */
 .rank-stats { font-size: .76rem; color: var(--muted); margin-top: 3px; margin-left: 39px; }
 
-/* ---------- Card de campeões ---------- */
-.champion-wrap { margin-top: 16px; display: grid; gap: 12px; justify-items: center; }
-.champion-card {
-  width: 100%; max-width: 460px;
-  background:
-    radial-gradient(600px 200px at 50% 0%, rgba(255,212,0,.45), transparent 60%),
-    linear-gradient(160deg, #006b32, #103a8f);
-  border-radius: 18px; padding: 26px; color: #fff; text-align: center; border: 4px solid var(--amarelo);
+/* ---------- Cards de campeões (estilo pôster) ---------- */
+.champ-cards { display: grid; gap: 22px; margin-top: 10px; }
+.champ-block { display: grid; gap: 10px; justify-items: center; }
+.champ-empty {
+  text-align: center; color: var(--muted); border: 1px dashed var(--linha);
+  border-radius: 14px; padding: 22px; background: var(--card-2);
 }
-.champion-card h3 { font-size: 1.5rem; margin-bottom: 4px; }
-.champion-card .sub { opacity: .9; margin-bottom: 18px; font-size: .9rem; }
-.champ-row { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 10px 0; }
-.champ-row img { width: 48px; height: 48px; border-radius: 50%; border: 3px solid #fff; object-fit: cover; background:#0b1a12; }
-.champ-row .pos { font-size: 1.6rem; }
-.champ-row .who { text-align: left; }
-.champ-row .who b { display: block; font-size: 1.05rem; }
+
+/* moldura dourada */
+.champ-card {
+  position: relative; width: 100%; max-width: 420px; margin: 0 auto;
+  padding: 5px; border-radius: 22px;
+  background: linear-gradient(150deg, #7a5e12, #ffe98a 22%, #b8860b 45%, #fff0b0 65%, #8a6d1a 88%);
+  box-shadow: 0 16px 44px rgba(0,0,0,.5);
+}
+.cc-inner {
+  position: relative; overflow: hidden;
+  border-radius: 18px; padding: 20px 16px 16px; text-align: center;
+  /* só gradientes lineares (compatível com a geração de imagem do html2canvas) */
+  background:
+    linear-gradient(180deg, rgba(255,205,60,.22), transparent 42%),
+    linear-gradient(0deg, rgba(255,170,20,.24), transparent 42%),
+    linear-gradient(180deg, #0c1c3a, #070d18 55%, #0b1730);
+}
+/* cantos dourados decorativos */
+.cc-corner { position: absolute; width: 26px; height: 26px; border: 3px solid #ffd86b; opacity: .85; }
+.cc-corner.tl { top: 8px; left: 8px; border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }
+.cc-corner.tr { top: 8px; right: 8px; border-left: 0; border-bottom: 0; border-radius: 0 8px 0 0; }
+.cc-corner.bl { bottom: 8px; left: 8px; border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
+.cc-corner.br { bottom: 8px; right: 8px; border-left: 0; border-top: 0; border-radius: 0 0 8px 0; }
+
+.cc-season { color: #ffe08a; font-size: .7rem; letter-spacing: 4px; font-weight: 800; }
+.cc-name {
+  font-size: 2.5rem; font-weight: 900; font-style: italic; line-height: 1;
+  text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 2px;
+  color: #ffd86b; text-shadow: 0 2px 0 #6b520f, 0 0 26px rgba(255,200,40,.55);
+  word-break: break-word;
+}
+.cc-role {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  color: #eaf3ec; font-size: .8rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+}
+.cc-dash { width: 34px; height: 5px; border-radius: 3px; background: #ffd400; }
+.cc-dash + .cc-dash, .cc-role .cc-dash:last-child { background: #00d35f; }
+.cc-flag { font-size: 1.2rem; margin-top: 4px; }
+
+.cc-photo { margin: 10px auto 6px; width: 156px; height: 156px; }
+.cc-photo img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  border: 4px solid #ffd86b; background: #0b1a12;
+  box-shadow: 0 0 34px rgba(255,200,40,.5);
+}
+.cc-pts { color: #ffd86b; font-weight: 900; font-size: 1.5rem; line-height: 1; margin-bottom: 12px; }
+.cc-pts span { font-size: .62rem; letter-spacing: 2px; color: #ffe08a; font-weight: 800; }
+
+.cc-stats { display: grid; gap: 8px; }
+.cc-row { display: flex; gap: 8px; justify-content: center; }
+.cc-stat {
+  flex: 1; max-width: 130px; text-align: center; border-radius: 12px; padding: 9px 4px;
+  background: linear-gradient(180deg, rgba(255,215,90,.08), rgba(0,0,0,.28));
+  border: 1px solid rgba(255,215,90,.38);
+}
+.cc-ic { font-size: 1.35rem; line-height: 1.1; }
+.cc-lbl { font-size: .58rem; letter-spacing: 1px; color: #ffe08a; font-weight: 800; }
+.cc-val { font-size: 1.7rem; font-weight: 900; color: #ffd86b; line-height: 1.1; }
+.cc-download { max-width: 420px; width: 100%; }
+
+@media (max-width: 460px) { .cc-name { font-size: 2rem; } .cc-photo { width: 130px; height: 130px; } }
 
 /* ---------- Modais ---------- */
 .modal { position: fixed; inset: 0; z-index: 60; background: rgba(2,8,5,.7); display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(3px); }
