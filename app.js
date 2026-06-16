@@ -69,8 +69,12 @@ const GRUPOS = {
     horaInicio: "7:50", horarioTxt: "das 7:50 às 11h"
   }
 };
-const SENHA_GRUPO_DOM = "futclip"; // senha para entrar no ambiente de domingo
-const GRUPO = GRUPOS[new URLSearchParams(location.search).get("grupo")] || GRUPOS.qua;
+/* A SENHA DO CADASTRO define o grupo da pessoa (não há troca manual de grupo). */
+const GRUPO_POR_SENHA = { realfut: "qua", futclip: "dom" };
+/* Grupo atual: no MODO TESTE pode forçar com ?grupo=…; no site real vem do
+   localStorage, que é gravado quando a pessoa se cadastra ou entra. Padrão: quarta. */
+const grupoForcado = DEMO ? new URLSearchParams(location.search).get("grupo") : null;
+const GRUPO = GRUPOS[grupoForcado] || GRUPOS[localStorage.getItem("realfut_grupo")] || GRUPOS.qua;
 
 /* =====================================================================
    2) FIREBASE x MODO TESTE (banco real vs banco de mentira na memória)
@@ -96,7 +100,7 @@ const stamp = () => DEMO ? { seconds: Date.now() / 1000 } : serverTimestamp();
 /* Camada de dados única (decide entre Firestore e memória).
    Todo documento é carimbado com o grupo atual (qua/dom) para isolar os dados. */
 async function dbSet(col, id, data) {
-  data = { ...data, grupo: GRUPO.id };
+  data = { grupo: GRUPO.id, ...data }; // um grupo explícito (ex.: no cadastro) tem prioridade
   if (DEMO) { mem[col][id] = data; memEmit(col); return; }
   await setDoc(doc(collection(db, col), id), data);
 }
@@ -115,7 +119,9 @@ function dbWatch(col, cb) {
    ===================================================================== */
 const SESSION_KEY = `realfut_me_${GRUPO.id}${DEMO ? "_demo" : ""}`;
 const state = {
-  players: [], votes: [], listEntries: [], actions: [],
+  players: [],     // só do grupo atual
+  allPlayers: [],  // todos os grupos (usado só pelo login achar a pessoa)
+  votes: [], listEntries: [], actions: [],
   meId: localStorage.getItem(SESSION_KEY) || null
 };
 
@@ -208,38 +214,22 @@ const REGRAS = [
 $("#rulesList").innerHTML = REGRAS.map(r => `<li>${r}</li>`).join("");
 
 /* =====================================================================
-   7.05) TEXTOS E TROCA DE GRUPO (Quarta x Domingo)
+   7.05) TEXTOS DO GRUPO (Quarta x Domingo) — só indicador, sem troca manual
    ===================================================================== */
 function aplicarTextosDoGrupo() {
   document.title = `⚽ Real Fut — ${GRUPO.nome}`;
   const set = (id, txt) => { const el = $("#" + id); if (el) el.textContent = txt; };
-  set("groupBadge", `${GRUPO.emoji} ${GRUPO.nome} ▾`);
+  set("groupBadge", `${GRUPO.emoji} ${GRUPO.nome}`);
   set("listaTitulo", `📋 Lista — ${GRUPO.nome}`);
   set("listaDiaNome", GRUPO.diaNome);
   const ad = $("#actionDesc");
   if (ad) ad.innerHTML =
     `Escolha o jogador e toque na jogada — os pontos vão para o <b>nome selecionado</b>. ` +
     `Liberado só ${GRUPO.id === "dom" ? "aos domingos" : "nas quartas"}, <b>${GRUPO.horarioTxt}</b> (horário de Brasília).`;
-  // pinta o selo com a cor do grupo
   const badge = $("#groupBadge");
-  if (badge) { badge.style.borderColor = GRUPO.cor; }
+  if (badge) badge.style.borderColor = GRUPO.cor;
 }
 aplicarTextosDoGrupo();
-
-/* Ir para outro grupo (recarrega com ?grupo=…) preservando ?demo */
-function irParaGrupo(id) {
-  if (id === GRUPO.id) return closeModals();
-  const params = new URLSearchParams(location.search);
-  if (id === "qua") params.delete("grupo"); else params.set("grupo", id);
-  location.search = params.toString();
-}
-$("#groupBadge").addEventListener("click", () => openModal("groupModal"));
-$("#btnGrupoQua").addEventListener("click", () => irParaGrupo("qua"));
-$("#btnGrupoDom").addEventListener("click", () => {
-  if (GRUPO.id === "dom") return closeModals();
-  closeModals();
-  pedirSenha("Grupo do Domingo", SENHA_GRUPO_DOM, () => irParaGrupo("dom"));
-});
 
 /* =====================================================================
    7.1) CRONÔMETRO DA PARTIDA (10 minutos, contagem regressiva)
@@ -324,31 +314,34 @@ function comprimirImagem(file) {
 }
 $("#btnDoRegister").addEventListener("click", async () => {
   if (bloqueado) return alert("Configure o Firebase primeiro (veja o aviso no topo).");
-  const pass = $("#regPass").value.trim();
+  const pass = $("#regPass").value.trim().toLowerCase();
   const name = $("#regName").value.trim();
   const nick = $("#regNick").value.trim();
   const userPass = $("#regUserPass").value;
   const gk = $("#regGK").checked;
   const err = $("#regError"); err.textContent = "";
 
-  if (pass !== SENHA_CADASTRO) return err.textContent = "Senha de cadastro incorreta.";
+  // a senha do grupo decide em qual grupo a pessoa entra
+  const grpId = GRUPO_POR_SENHA[pass];
+  if (!grpId) return err.textContent = "Senha do grupo incorreta.";
   if (!name || !nick) return err.textContent = "Preencha nome e apelido.";
   if (!userPass || userPass.length < 3) return err.textContent = "Crie uma senha pessoal (mín. 3 caracteres).";
-  if (state.players.some(p => p.nick.toLowerCase() === nick.toLowerCase()))
-    return err.textContent = "Esse apelido já existe.";
+  // apelido único DENTRO do grupo escolhido
+  const noGrupo = state.allPlayers.filter(p => (p.grupo || "qua") === grpId);
+  if (noGrupo.some(p => p.nick.toLowerCase() === nick.toLowerCase()))
+    return err.textContent = "Esse apelido já existe nesse grupo.";
 
   const id = "p_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
   const passwordHash = await sha256(userPass);
   await dbSet("players", id, {
-    name, nick, gk, photo: fotoBase64 || "", passwordHash, createdAt: stamp()
+    name, nick, gk, photo: fotoBase64 || "", passwordHash, grupo: grpId, createdAt: stamp()
   });
-
-  setMe(id); // já entra logado
   fotoBase64 = "";
   $("#regPass").value = $("#regName").value = $("#regNick").value = $("#regUserPass").value = "";
   $("#regGK").checked = false;
   $("#regPreview").classList.add("hidden");
-  closeModals();
+
+  entrarNoGrupo(grpId, id); // entra logado, no grupo certo
 });
 
 /* =====================================================================
@@ -356,8 +349,10 @@ $("#btnDoRegister").addEventListener("click", async () => {
    ===================================================================== */
 $("#btnOpenLogin").addEventListener("click", () => {
   const sel = $("#loginSelect");
-  sel.innerHTML = state.players.length
-    ? state.players.map(p => `<option value="${p.id}">${p.name} (${p.nick})</option>`).join("")
+  // lista de todos os grupos, com o emoji do grupo, para a pessoa achar seu nome
+  const todos = state.allPlayers.slice().sort((a, b) => a.name.localeCompare(b.name));
+  sel.innerHTML = todos.length
+    ? todos.map(p => `<option value="${p.id}">${GRUPOS[p.grupo || "qua"].emoji} ${p.name} (${p.nick})</option>`).join("")
     : `<option value="">Ninguém cadastrado ainda</option>`;
   $("#loginPass").value = "";
   $("#loginError").textContent = "";
@@ -367,7 +362,7 @@ $("#btnDoLogin").addEventListener("click", async () => {
   const id = $("#loginSelect").value;
   const err = $("#loginError"); err.textContent = "";
   if (!id) return err.textContent = "Cadastre-se primeiro.";
-  const p = state.players.find(x => x.id === id);
+  const p = state.allPlayers.find(x => x.id === id);
   const pw = $("#loginPass").value;
   if (!pw) return err.textContent = "Digite sua senha.";
 
@@ -375,14 +370,23 @@ $("#btnDoLogin").addEventListener("click", async () => {
   if (p.passwordHash) {
     if (p.passwordHash !== h) return err.textContent = "Senha incorreta.";
   } else {
-    // conta antiga (criada antes da senha): define a senha agora
+    // conta antiga (criada antes da senha): define a senha agora, mantendo o grupo
     const { id: _omit, ...data } = p;
-    await dbSet("players", p.id, { ...data, passwordHash: h });
+    await dbSet("players", p.id, { ...data, grupo: p.grupo || "qua", passwordHash: h });
   }
-  setMe(p.id);
-  closeModals();
+  entrarNoGrupo(p.grupo || "qua", p.id);
 });
 $("#btnLogout").addEventListener("click", () => setMe(null));
+
+/* Entra logado já no grupo certo. Se o grupo for diferente do atual, recarrega
+   a página para o app inteiro (regras, lista, ranking) assumir aquele grupo. */
+function entrarNoGrupo(grpId, playerId) {
+  if (DEMO) { setMe(playerId); closeModals(); return; }
+  localStorage.setItem("realfut_grupo", grpId);
+  localStorage.setItem(`realfut_me_${grpId}`, playerId);
+  if (grpId === GRUPO.id) { setMe(playerId); closeModals(); }
+  else location.reload(); // troca de grupo → recarrega no ambiente certo
+}
 
 function setMe(id) {
   state.meId = id;
@@ -962,7 +966,8 @@ const doGrupo = (arr) => DEMO ? arr : arr.filter(x => (x.grupo || "qua") === GRU
 
 function startListeners() {
   dbWatch("players", (arr) => {
-    state.players = doGrupo(arr);
+    state.allPlayers = arr;            // todos os grupos (para o login)
+    state.players = doGrupo(arr);      // só o grupo atual
     if (state.meId && !state.players.some(p => p.id === state.meId)) setMe(null);
     renderTudo();
   });

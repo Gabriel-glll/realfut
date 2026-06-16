@@ -80,10 +80,8 @@ body::before {
 .group-badge {
   background: rgba(255,255,255,.1); color: #fff;
   border: 1.5px solid rgba(255,255,255,.3); border-radius: 999px;
-  padding: 4px 11px; font-weight: 800; font-size: .78rem; cursor: pointer;
-  transition: .15s; white-space: nowrap;
+  padding: 4px 11px; font-weight: 800; font-size: .78rem; white-space: nowrap;
 }
-.group-badge:hover { background: rgba(255,255,255,.22); }
 
 .tabs { display: flex; gap: 8px; margin-left: auto; }
 .tab-btn {
