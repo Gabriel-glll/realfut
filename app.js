@@ -985,14 +985,26 @@ function demoAvatar(letra, cor) {
 function seedDemo() {
   const HASH_123 = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"; // sha256("123")
   const defs = [
-    ["Gabriel Gil", "Gil", "#009739", false],
-    ["Rafael Souza", "Rafa", "#2f6bff", false],
-    ["Bruno Lima", "Brunão", "#ff8c00", false],
-    ["Thiago Alves", "Thiagão", "#9b2fff", false],
-    ["Pedro Henrique", "Pedrinho", "#e6005c", false],
-    ["Lucas Dias", "Luquinha", "#00b8a9", false],
-    ["Marcos Paulo", "Marcão", "#555f6b", true],   // goleiro fixo
-    ["Diego Santos", "Dieguito", "#c0392b", false]
+    ["Gabriel Gil",      "Gil",       "#009739", false],
+    ["Rafael Souza",     "Rafa",      "#2f6bff", false],
+    ["Bruno Lima",       "Brunão",    "#ff8c00", false],
+    ["Thiago Alves",     "Thiagão",   "#9b2fff", false],
+    ["Pedro Henrique",   "Pedrinho",  "#e6005c", false],
+    ["Lucas Dias",       "Luquinha",  "#00b8a9", false],
+    ["Marcos Paulo",     "Marcão",    "#555f6b", false],
+    ["Diego Santos",     "Dieguito",  "#c0392b", false],
+    ["Felipe Rocha",     "Felipão",   "#d4a017", false],
+    ["Rodrigo Melo",     "Rodriguinho","#1abc9c", false],
+    ["Anderson Costa",   "Dinho",     "#8e44ad", false],
+    ["Leandro Nunes",    "Léo",       "#e74c3c", false],
+    ["Caio Ferreira",    "Cainho",    "#2980b9", false],
+    ["Gustavo Pires",    "Guga",      "#27ae60", false],
+    ["Matheus Ribeiro",  "Mathi",     "#f39c12", false],
+    ["Vitor Hugo",       "Vitu",      "#16a085", false],
+    ["Henrique Bastos",  "Kique",     "#7f8c8d", false],
+    ["Samuel Teixeira",  "Samuca",    "#c0392b", false],
+    ["Danilo Carvalho",  "Dani",      "#2c3e50", false],
+    ["Eduardo Farias",   "Edu",       "#0097a7", false]
   ];
   const ids = [];
   defs.forEach((d, i) => {
@@ -1011,8 +1023,7 @@ function seedDemo() {
   vote(3, false, "Regra 7 é injusta — empate devia ser empate, ninguém leva vantagem.");
 
   const ciclo = cicloAtual();
-  [0, 1, 2, 3, 4, 5, 6].forEach((i, k) => {
-    const pid = ids[i];
+  ids.forEach((pid, k) => {
     mem.listEntries[pid] = {
       playerId: pid, nick: mem.players[pid].nick, photo: mem.players[pid].photo,
       cycleKey: ciclo, joinedAt: { seconds: 3000 + k }
