@@ -240,7 +240,8 @@ body::before {
 .team h4 { margin-bottom: 10px; font-size: 1.05rem; }
 .team ul { list-style: none; display: grid; gap: 6px; }
 .team li { background: rgba(0,0,0,.28); padding: 6px 10px; border-radius: 8px; font-weight: 600; }
-.team .gk { background: rgba(0,0,0,.45); }
+.team .gk     { background: rgba(0,0,0,.45); }
+.team .gk-emp { opacity: .78; font-style: italic; }
 .team-azul   { background: linear-gradient(160deg, #16357a, var(--azul)); }
 .team-amarelo{ background: linear-gradient(160deg, #b89400, var(--amarelo)); color: #1a1400; }
 .team-amarelo li { background: rgba(0,0,0,.2); color:#1a1400; }

@@ -541,37 +541,73 @@ function sortearTimes() {
     $("#drawResult").innerHTML = `<div class="gk-note">Não dá pra fechar nenhum time de 5 jogadores de linha (tem ${linha.length}).</div>`;
     return;
   }
-  const cores = ["team-azul", "team-amarelo", "team-verde", "team-branco"];
-  const nomes = ["Azul", "Amarelo", "Verde", "Branco"];
-  const times = [];
+
+  // Apenas azul e amarelo, alternando
+  const cores  = ["team-azul", "team-amarelo", "team-azul", "team-amarelo"];
+  const letras = ["A", "B", "C", "D"];
+  const times  = [];
   let idx = 0;
   for (let t = 0; t < nTimes; t++) {
     const jogadores = linha.slice(idx, idx + 5);
     idx += 5;
     const golFixo = goleirosFixos.length ? goleirosFixos.shift() : null;
-    times.push({ nome: nomes[t], cor: cores[t], jogadores, golFixo });
+    times.push({ letra: letras[t], cor: cores[t], jogadores, golFixo });
   }
-  const sobras = [...linha.slice(idx), ...goleirosFixos];
+
+  // Goleiro emprestado para o 1º jogo (A vs B):
+  // - 4 times: Time C fornece 1 goleiro pro A, Time D fornece 1 pro B
+  // - 3 times: Time C fornece 2 goleiros (1 pro A, 1 pro B)
+  // - 2 times: sem times esperando, combinar na hora
+  const gkEmprestado = {};  // { 'A': { nick, fonte }, 'B': { nick, fonte } }
+  const n = times.length;
+  if (n >= 3) {
+    const C = times[2];
+    if (!times[0].golFixo)
+      gkEmprestado["A"] = { nick: C.jogadores[0].nick, fonte: "C" };
+    if (!times[1].golFixo) {
+      if (n === 4) {
+        const D = times[3];
+        gkEmprestado["B"] = { nick: D.jogadores[0].nick, fonte: "D" };
+      } else {
+        gkEmprestado["B"] = { nick: C.jogadores[1] ? C.jogadores[1].nick : C.jogadores[0].nick, fonte: "C" };
+      }
+    }
+  }
 
   let html = `<div class="teams-grid">`;
   for (const t of times) {
+    const emp = gkEmprestado[t.letra];
+    let gkLinha = "";
+    if (t.golFixo) {
+      gkLinha = `<li class="gk">🧤 ${t.golFixo.nick} <small>(goleiro fixo)</small></li>`;
+    } else if (emp) {
+      gkLinha = `<li class="gk gk-emp">🧤 ${emp.nick} <small>(Time ${emp.fonte} — 1º jogo)</small></li>`;
+    } else {
+      gkLinha = `<li class="gk gk-emp">🧤 <em>a definir</em></li>`;
+    }
     html += `<div class="team ${t.cor}">
-      <h4>Time ${t.nome}</h4>
+      <h4>Time ${t.letra}</h4>
       <ul>
-        ${t.golFixo ? `<li class="gk">🧤 ${t.golFixo.nick} <small>(goleiro fixo)</small></li>` : ``}
+        ${gkLinha}
         ${t.jogadores.map(j => `<li>${j.nick}</li>`).join("")}
       </ul>
     </div>`;
   }
   html += `</div>`;
-  html += `<div class="gk-note">
-    <b>🧤 Goleiro emprestado (revezamento):</b>
-    Como vale "rei da quadra", só 2 times jogam por vez. Quem está de fora reveza no gol
-    dos times que <u>não</u> têm goleiro fixo, na ordem abaixo:
-    ${sobras.length
-      ? `<ul>${sobras.map(s => `<li>${s.nick}</li>`).join("")}</ul>`
-      : `<p>(Sem jogadores de fora agora — combinem o rodízio na hora.)</p>`}
-  </div>`;
+
+  // Nota sobre o revezamento
+  let notaGk = `<b>🧤 Goleiro emprestado (revezamento):</b> `;
+  if (n === 2) {
+    notaGk += `Só 2 times — combinem o goleiro na hora.`;
+  } else if (n === 3) {
+    const a = gkEmprestado["A"], b = gkEmprestado["B"];
+    notaGk += `1º jogo (A vs B): <b>${a ? a.nick : "?"}</b> no gol do Time A e <b>${b ? b.nick : "?"}</b> no gol do Time B — os dois vêm do Time C. Conforme os times trocam, o goleiro também troca.`;
+  } else {
+    const a = gkEmprestado["A"], b = gkEmprestado["B"];
+    notaGk += `1º jogo (A vs B): <b>${a ? a.nick : "?"}</b> (Time C) no gol do A · <b>${b ? b.nick : "?"}</b> (Time D) no gol do B. Conforme os times trocam, o goleiro vem de quem está esperando.`;
+  }
+  html += `<div class="gk-note">${notaGk}</div>`;
+
   $("#drawResult").innerHTML = html;
 }
 
