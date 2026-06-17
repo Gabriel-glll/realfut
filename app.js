@@ -89,8 +89,8 @@ if (!DEMO) {
 const bloqueado = !DEMO && semChaves;
 
 /* ---- Banco de mentira em memória (só no MODO TESTE) ---- */
-const mem  = { players: {}, votes: {}, listEntries: {}, actions: {} };
-const subs = { players: [], votes: [], listEntries: [], actions: [] };
+const mem  = { players: {}, votes: {}, listEntries: {}, actions: {}, reservas: {} };
+const subs = { players: [], votes: [], listEntries: [], actions: [], reservas: [] };
 const memArray = (c) => Object.entries(mem[c]).map(([id, d]) => ({ id, ...d }));
 const memEmit  = (c) => subs[c].forEach(cb => cb(memArray(c)));
 
@@ -121,7 +121,7 @@ const SESSION_KEY = `realfut_me_${GRUPO.id}${DEMO ? "_demo" : ""}`;
 const state = {
   players: [],     // só do grupo atual
   allPlayers: [],  // todos os grupos (usado só pelo login achar a pessoa)
-  votes: [], listEntries: [], actions: [],
+  votes: [], listEntries: [], actions: [], reservas: [],
   meId: localStorage.getItem(SESSION_KEY) || null
 };
 
@@ -1006,8 +1006,57 @@ function renderRecentActions() {
     : `<p class="muted tiny">Nenhuma ação lançada ainda.</p>`;
 }
 
+/* =====================================================================
+   RESERVAS DA QUADRA — dois horários por ciclo, uma pessoa por slot
+   ===================================================================== */
+const SLOTS_RESERVA = [
+  { id: "slot1", label: "20h – 21h" },
+  { id: "slot2", label: "21h – 22h" }
+];
+function renderReservas() {
+  const el = document.getElementById("reservasList");
+  if (!el) return;
+  const ciclo = cicloAtual();
+  const eu = meuJogador();
+  let html = "";
+  for (const slot of SLOTS_RESERVA) {
+    const docId = `${GRUPO.id}_${ciclo}_${slot.id}`;
+    const reserva = state.reservas.find(r => r.id === docId);
+    let statusHtml;
+    if (!reserva) {
+      statusHtml = eu
+        ? `<span class="reserva-vaga">Ninguém ainda</span>
+           <button class="btn btn-verde small reserva-btn" data-doc="${docId}" data-slot="${slot.id}">Reservar</button>`
+        : `<span class="reserva-vaga">Ninguém ainda</span><span class="muted tiny">Entre para reservar</span>`;
+    } else if (eu && reserva.playerId === eu.id) {
+      statusHtml = `<span class="reserva-eu">✅ Você reservou</span>
+        <button class="btn btn-ghost small reserva-cancel" data-doc="${docId}">Cancelar</button>`;
+    } else {
+      statusHtml = `<span class="reserva-outro">🙋 ${escapeHtml(reserva.nick)}</span>`;
+    }
+    html += `<div class="reserva-slot">
+      <span class="reserva-hora">${slot.label}</span>
+      <div class="reserva-status">${statusHtml}</div>
+    </div>`;
+  }
+  el.innerHTML = html;
+  el.querySelectorAll(".reserva-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const eu = meuJogador();
+      if (!eu) { precisaLogin(); return; }
+      dbSet("reservas", btn.dataset.doc, {
+        slotId: btn.dataset.slot, cycleKey: cicloAtual(),
+        playerId: eu.id, nick: eu.nick, reservadoEm: stamp()
+      });
+    });
+  });
+  el.querySelectorAll(".reserva-cancel").forEach(btn => {
+    btn.addEventListener("click", () => dbDelete("reservas", btn.dataset.doc));
+  });
+}
+
 function renderTudo() {
-  renderLogin(); renderVotacao(); renderLista(); renderJanela();
+  renderLogin(); renderVotacao(); renderLista(); renderReservas(); renderJanela();
   renderActionPlayers(); renderScores();
 }
 
@@ -1083,6 +1132,13 @@ function seedDemo() {
   act(1, "win", dB); act(1, "goal", dB); act(1, "goal", dB);
   act(5, "win", dB); act(5, "goal", dB);
   act(2, "goal", dB); act(6, "gaia", dB); act(7, "yellow", dB);
+
+  // Reservas: slot1 já reservado pelo Gil, slot2 livre
+  const slot1Id = `${GRUPO.id}_${ciclo}_slot1`;
+  mem.reservas[slot1Id] = {
+    grupo: GRUPO.id, slotId: "slot1", cycleKey: ciclo,
+    playerId: ids[0], nick: "Gil", reservadoEm: { seconds: 5000 }
+  };
 }
 
 /* Banner do MODO TESTE no topo */
@@ -1111,7 +1167,8 @@ function startListeners() {
   });
   dbWatch("votes", (arr) => { state.votes = doGrupo(arr); renderVotacao(); });
   dbWatch("listEntries", (arr) => { state.listEntries = doGrupo(arr); renderLista(); });
-  dbWatch("actions", (arr) => { state.actions = doGrupo(arr); renderScores(); });
+  dbWatch("actions",  (arr) => { state.actions  = doGrupo(arr); renderScores(); });
+  dbWatch("reservas", (arr) => { state.reservas = doGrupo(arr); renderReservas(); });
 }
 
 if (DEMO) { mostrarBannerDemo(); seedDemo(); startListeners(); }
