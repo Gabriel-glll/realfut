@@ -705,10 +705,11 @@
     document.getElementById('btnWinB').textContent =
       `🔵 Time B${isIncompleteB ? ' (incompleto)' : ''} venceu`;
 
-    // Banco / aguardando
-    if (state.bench.length > 0) {
+    // Banco / aguardando (inclui GKs do banco no display)
+    const benchPlusGKs = buildDisplayBench();
+    if (benchPlusGKs.length > 0) {
       document.getElementById('waitingSection').style.display = '';
-      renderWaiting();
+      renderWaiting(benchPlusGKs);
     } else {
       document.getElementById('waitingSection').style.display = 'none';
     }
@@ -736,27 +737,39 @@
     row.innerHTML = `🧤 Goleiro: <strong>${gk.name}</strong> ${priorityBadge}`;
   }
 
-  function renderWaiting() {
-    const container = document.getElementById('waitingTeams');
-    // agrupar banco em blocos de 5 (times aguardando)
-    const all = state.bench;
+  // GKs que vieram do banco entram no display como parte do time em espera
+  function buildDisplayBench() {
+    const gkDisplay = [];
+    if (state.gkA && !state.gkA.internal)
+      gkDisplay.push({ name: state.gkA.name, priority: state.gkA.priority, isGK: true, gkFor: 'A' });
+    if (state.gkB && !state.gkB.internal)
+      gkDisplay.push({ name: state.gkB.name, priority: state.gkB.priority, isGK: true, gkFor: 'B' });
+    return [...gkDisplay, ...state.bench];
+  }
 
-    if (all.length === 0) {
+  function renderWaiting(all) {
+    const container = document.getElementById('waitingTeams');
+
+    if (!all || all.length === 0) {
       container.innerHTML = '<span class="muted" style="font-size:.85rem">—</span>';
       return;
     }
 
-    // mostrar como lista única com marcação de prioridade
     const chunks = [];
     for (let i = 0; i < all.length; i += 5) chunks.push(all.slice(i, i + 5));
 
+    // "incompleto" só aparece se for o último chunk com menos de 5
     container.innerHTML = chunks.map((chunk, ci) => {
-      const label = ci === 0 && all.some(p => p.priority)
-        ? `Próximo time${chunk.length < 5 ? ' <span class="incomplete-badge">incompleto</span>' : ''}`
-        : `Time em espera${chunk.length < 5 ? ' <span class="incomplete-badge">incompleto</span>' : ''}`;
-      const players = chunk.map(p =>
-        `<span class="wt-player ${p.priority ? 'priority' : ''}">${p.name}${p.priority ? ' ⭐' : ''}</span>`
-      ).join('');
+      const isLast = ci === chunks.length - 1;
+      const incomplete = isLast && chunk.length < 5;
+      const hasPriority = chunk.some(p => p.priority);
+      const label = ci === 0 && hasPriority
+        ? `Próximo time${incomplete ? ' <span class="incomplete-badge">incompleto</span>' : ''}`
+        : `Time em espera${incomplete ? ' <span class="incomplete-badge">incompleto</span>' : ''}`;
+      const players = chunk.map(p => {
+        const gkTag = p.isGK ? ` <span style="font-size:.7rem;color:var(--amarelo)">🧤 time ${p.gkFor}</span>` : '';
+        return `<span class="wt-player ${p.priority ? 'priority' : ''}">${p.name}${p.priority ? ' ⭐' : ''}${gkTag}</span>`;
+      }).join('');
       return `<div class="waiting-team-box">
         <div class="wt-label">${label}</div>
         <div class="wt-players">${players}</div>
