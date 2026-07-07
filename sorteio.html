@@ -596,9 +596,11 @@
     const bench = state.bench;
 
     if (bench.length >= 2) {
-      // Pega os dois primeiros do banco (priority vem primeiro graças à ordenação)
-      state.gkA = bench.splice(0, 1)[0];
-      state.gkB = bench.splice(0, 1)[0];
+      // Sorteia aleatoriamente dois índices distintos do banco
+      const i1 = Math.floor(Math.random() * bench.length);
+      state.gkA = bench.splice(i1, 1)[0];
+      const i2 = Math.floor(Math.random() * bench.length);
+      state.gkB = bench.splice(i2, 1)[0];
     } else if (bench.length === 1) {
       state.gkA = bench.splice(0, 1)[0];
       // GK do time B = último jogador do time A (emprestado)
