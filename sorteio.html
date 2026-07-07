@@ -759,13 +759,13 @@
     for (let i = 0; i < all.length; i += 5) chunks.push(all.slice(i, i + 5));
 
     // "incompleto" só aparece se for o último chunk com menos de 5
+    const teamLetters = ['C','D','E','F','G','H'];
     container.innerHTML = chunks.map((chunk, ci) => {
       const isLast = ci === chunks.length - 1;
       const incomplete = isLast && chunk.length < 5;
-      const hasPriority = chunk.some(p => p.priority);
-      const label = ci === 0 && hasPriority
-        ? `Próximo time${incomplete ? ' <span class="incomplete-badge">incompleto</span>' : ''}`
-        : `Time em espera${incomplete ? ' <span class="incomplete-badge">incompleto</span>' : ''}`;
+      const letter = teamLetters[ci] || `${ci + 3}`;
+      const incBadge = incomplete ? ' <span class="incomplete-badge">incompleto</span>' : '';
+      const label = `TIME ${letter}${incBadge}`;
       const players = chunk.map(p => {
         const gkTag = p.isGK ? ` <span style="font-size:.7rem;color:var(--amarelo)">🧤 time ${p.gkFor}</span>` : '';
         return `<span class="wt-player ${p.priority ? 'priority' : ''}">${p.name}${p.priority ? ' ⭐' : ''}${gkTag}</span>`;
