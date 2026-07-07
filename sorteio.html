@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎲 Sorteio — Real Fut</title>
+  <style>
+    :root {
+      --verde:    #00d35f;
+      --verde-d:  #00a84b;
+      --amarelo:  #ffd400;
+      --amarelo-d:#e6bf00;
+      --azul:     #2f6bff;
+      --vermelho: #ff4d4d;
+      --bg-0:   #07120c;
+      --bg-1:   #0b1a12;
+      --card:   rgba(17, 30, 22, 0.82);
+      --linha:  rgba(255,255,255,0.08);
+      --texto:  #eaf3ec;
+      --muted:  #93a79b;
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
+      color: var(--texto);
+      min-height: 100vh;
+      padding-bottom: 60px;
+      background:
+        radial-gradient(900px 480px at 8% -8%, rgba(0,211,95,.18), transparent 60%),
+        radial-gradient(820px 460px at 100% 0%, rgba(47,107,255,.16), transparent 55%),
+        radial-gradient(700px 500px at 50% 120%, rgba(255,212,0,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-0));
+      background-attachment: fixed;
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: -1;
+      background: url("pitch.svg") center top / cover no-repeat;
+      opacity: .9;
+      pointer-events: none;
+    }
+
+    /* ---- topbar ---- */
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      background: rgba(7,18,12,.85);
+      border-bottom: 1px solid var(--linha);
+      backdrop-filter: blur(10px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar a { color: var(--muted); text-decoration: none; font-size: .9rem; }
+    .topbar a:hover { color: var(--verde); }
+    .topbar h1 { font-size: 1.1rem; font-weight: 700; }
+    .topbar h1 .hl { color: var(--verde); }
+    .ball { font-size: 1.3rem; }
+
+    /* ---- layout ---- */
+    .container { max-width: 640px; margin: 0 auto; padding: 20px 16px; }
+
+    /* ---- card ---- */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--linha);
+      border-radius: var(--radius);
+      padding: 22px;
+      margin-bottom: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .section-title {
+      font-size: 1.05rem; font-weight: 700; margin-bottom: 12px;
+    }
+    .muted { color: var(--muted); font-size: .9rem; }
+
+    /* ---- buttons ---- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 18px; border: none; border-radius: 12px;
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+      transition: filter .15s, transform .1s;
+    }
+    .btn:hover  { filter: brightness(1.12); }
+    .btn:active { transform: scale(.97); }
+    .btn-verde   { background: var(--verde);   color: #062b16; }
+    .btn-azul    { background: var(--azul);    color: #fff; }
+    .btn-amarelo { background: var(--amarelo); color: #221800; }
+    .btn-vermelho{ background: var(--vermelho);color: #fff; }
+    .btn-ghost   { background: rgba(255,255,255,.09); color: var(--texto); border: 1px solid var(--linha); }
+    .btn.big     { padding: 14px 26px; font-size: 1rem; border-radius: 14px; }
+    .btn.full    { width: 100%; }
+    .btn.sm      { padding: 6px 12px; font-size: .8rem; border-radius: 8px; }
+
+    /* ---- setup phase ---- */
+    .name-input-row {
+      display: flex; gap: 8px; margin-bottom: 10px;
+    }
+    .name-input-row input {
+      flex: 1;
+      background: rgba(255,255,255,.07);
+      border: 1px solid var(--linha);
+      border-radius: 10px;
+      color: var(--texto);
+      font-size: .95rem;
+      padding: 10px 14px;
+      outline: none;
+    }
+    .name-input-row input:focus { border-color: var(--verde); }
+    .name-input-row input::placeholder { color: var(--muted); }
+
+    .names-bulk {
+      width: 100%;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--linha);
+      border-radius: 10px;
+      color: var(--texto);
+      font-size: .88rem;
+      padding: 10px 14px;
+      outline: none;
+      resize: vertical;
+      min-height: 90px;
+      margin-bottom: 10px;
+      font-family: inherit;
+    }
+    .names-bulk:focus { border-color: var(--verde); }
+    .names-bulk::placeholder { color: var(--muted); }
+
+    .name-chips {
+      display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0;
+      min-height: 30px;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(0,211,95,.13);
+      border: 1px solid rgba(0,211,95,.25);
+      border-radius: 20px;
+      padding: 4px 10px 4px 12px;
+      font-size: .85rem;
+    }
+    .chip button {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: .9rem; line-height: 1; padding: 0;
+    }
+    .chip button:hover { color: var(--vermelho); }
+
+    .count-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .count-bar .tag {
+      background: rgba(255,255,255,.08);
+      border-radius: 8px; padding: 4px 10px; font-size: .82rem;
+    }
+    .count-bar .tag.ok { background: rgba(0,211,95,.15); color: var(--verde); }
+    .count-bar .tag.warn { background: rgba(255,212,0,.15); color: var(--amarelo); }
+
+    /* ---- match phase ---- */
+    .match-header {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      margin-bottom: 4px;
+    }
+    .match-subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: .85rem;
+      margin-bottom: 20px;
+    }
+
+    .teams-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 20px;
+    }
+    .vs-badge {
+      font-size: 1.4rem; font-weight: 900; color: var(--amarelo);
+      display: flex; align-items: center; padding-top: 36px;
+    }
+
+    .team-box {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--linha);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .team-box.highlight-a { border-color: rgba(0,211,95,.4); }
+    .team-box.highlight-b { border-color: rgba(47,107,255,.4); }
+
+    .team-label {
+      font-size: .75rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .team-name {
+      font-size: 1.1rem; font-weight: 800; margin-bottom: 10px;
+    }
+    .team-name.a { color: var(--verde); }
+    .team-name.b { color: var(--azul); }
+
+    .player-list { list-style: none; }
+    .player-list li {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--linha);
+      font-size: .88rem;
+    }
+    .player-list li:last-child { border-bottom: none; }
+    .player-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0;
+    }
+    .player-dot.a { background: var(--verde); }
+    .player-dot.b { background: var(--azul); }
+
+    .gk-row {
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: rgba(255,212,0,.08);
+      border: 1px dashed rgba(255,212,0,.3);
+      border-radius: 10px;
+      font-size: .82rem;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .gk-row .priority-tag {
+      background: rgba(255,212,0,.2);
+      color: var(--amarelo);
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: .72rem;
+      font-weight: 700;
+    }
+
+    /* bench/waiting section */
+    .bench-section {
+      margin-bottom: 20px;
+    }
+    .bench-title {
+      font-size: .82rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted); margin-bottom: 8px;
+    }
+    .bench-chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .bench-chip {
+      background: rgba(255,255,255,.07);
+      border: 1px solid var(--linha);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: .82rem;
+    }
+    .bench-chip.priority {
+      background: rgba(255,212,0,.12);
+      border-color: rgba(255,212,0,.3);
+      color: var(--amarelo);
+    }
+    .bench-chip.priority::before { content: "⭐ "; }
+
+    /* winner buttons */
+    .winner-section {
+      text-align: center; margin-bottom: 6px;
+    }
+    .winner-section p {
+      color: var(--muted); font-size: .9rem; margin-bottom: 14px;
+    }
+    .winner-btns {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    }
+    .btn-win-a { background: var(--verde); color: #062b16; }
+    .btn-win-b { background: var(--azul); color: #fff; }
+    .btn-empate { background: rgba(255,255,255,.1); color: var(--texto); border: 1px solid var(--linha); }
+
+    /* result flash */
+    .result-flash {
+      text-align: center;
+      padding: 16px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 16px;
+      animation: fadeIn .3s ease;
+    }
+    .result-flash.win-a { background: rgba(0,211,95,.18); border: 1px solid rgba(0,211,95,.4); color: var(--verde); }
+    .result-flash.win-b { background: rgba(47,107,255,.18); border: 1px solid rgba(47,107,255,.4); color: #7fa3ff; }
+    .result-flash.empate { background: rgba(255,212,0,.12); border: 1px solid rgba(255,212,0,.3); color: var(--amarelo); }
+
+    @keyframes fadeIn { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: none; } }
+
+    /* waiting teams section */
+    .waiting-teams { display: flex; flex-direction: column; gap: 10px; }
+    .waiting-team-box {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--linha);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .waiting-team-box .wt-label {
+      font-size: .75rem; color: var(--muted); text-transform: uppercase;
+      letter-spacing: .06em; margin-bottom: 6px;
+    }
+    .waiting-team-box .wt-players {
+      font-size: .87rem; display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .wt-player {
+      background: rgba(255,255,255,.07); border-radius: 8px; padding: 2px 8px;
+    }
+    .wt-player.priority { background: rgba(255,212,0,.12); color: var(--amarelo); }
+
+    /* action buttons row */
+    .action-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+    /* history */
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--linha);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: .85rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .history-item .hnum { color: var(--muted); font-size: .78rem; width: 24px; }
+    .history-item .hwinner { font-weight: 700; }
+    .history-item .hwinner.a { color: var(--verde); }
+    .history-item .hwinner.b { color: #7fa3ff; }
+    .history-item .hwinner.e { color: var(--amarelo); }
+
+    /* incomplete badge */
+    .incomplete-badge {
+      background: rgba(255,212,0,.15);
+      color: var(--amarelo);
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-size: .72rem;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    /* responsive */
+    @media (max-width: 480px) {
+      .teams-grid { grid-template-columns: 1fr auto 1fr; gap: 8px; }
+      .team-box { padding: 10px; }
+      .team-name { font-size: .95rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="ball">⚽</span>
+  <h1>Real <span class="hl">Fut</span> — <span style="color:var(--amarelo)">Sorteio</span></h1>
+  <div style="flex:1"></div>
+  <a href="index.html">← Voltar</a>
+</header>
+
+<div class="container">
+
+  <!-- ======== FASE SETUP ======== -->
+  <div id="phaseSetup">
+    <div class="card">
+      <h2 class="section-title">🎲 Sortear Times</h2>
+      <p class="muted" style="margin-bottom:14px">
+        Times de <strong>5 jogadores</strong> + 1 goleiro emprestado de outro time.
+        Se sobrar jogadores, o time incompleto completa com quem perdeu.
+      </p>
+
+      <!-- input individual -->
+      <div class="name-input-row">
+        <input type="text" id="nameInput" placeholder="Nome do jogador..." maxlength="30" />
+        <button class="btn btn-verde" onclick="addName()">+ Adicionar</button>
+      </div>
+
+      <!-- ou colar vários nomes -->
+      <details style="margin-bottom: 12px;">
+        <summary style="cursor:pointer; color:var(--muted); font-size:.85rem; margin-bottom:8px;">
+          ✏️ Colar vários nomes de uma vez
+        </summary>
+        <textarea class="names-bulk" id="bulkInput"
+          placeholder="Cole aqui os nomes separados por vírgula ou por linha:&#10;João, Pedro, Carlos&#10;Lucas&#10;Mateus"></textarea>
+        <button class="btn btn-ghost" onclick="addBulk()" style="width:100%">+ Adicionar todos</button>
+      </details>
+
+      <!-- chips dos nomes -->
+      <div class="count-bar">
+        <span class="tag" id="countTag">0 jogadores</span>
+        <button class="btn btn-ghost sm" onclick="clearAll()">🗑 Limpar tudo</button>
+      </div>
+      <div class="name-chips" id="nameChips"></div>
+
+      <button class="btn btn-verde big full" id="btnDraw" onclick="draw()" style="margin-top:16px" disabled>
+        ⚡ Sortear Times
+      </button>
+      <p class="muted" id="drawHint" style="text-align:center; margin-top:8px; font-size:.82rem">
+        Adicione pelo menos 6 jogadores para sortear.
+      </p>
+    </div>
+  </div>
+
+  <!-- ======== FASE PARTIDA ======== -->
+  <div id="phaseMatch" style="display:none">
+
+    <!-- resultado da última partida -->
+    <div id="resultFlash" style="display:none"></div>
+
+    <!-- partida atual -->
+    <div class="card">
+      <div class="match-header" id="matchTitle">Partida #1</div>
+      <div class="match-subtitle" id="matchSubtitle"></div>
+
+      <div class="teams-grid">
+        <!-- Time A -->
+        <div class="team-box highlight-a">
+          <div class="team-label">Time A</div>
+          <div class="team-name a" id="teamAName">—</div>
+          <ul class="player-list" id="playerListA"></ul>
+          <div class="gk-row" id="gkRowA" style="display:none"></div>
+        </div>
+
+        <div class="vs-badge">VS</div>
+
+        <!-- Time B -->
+        <div class="team-box highlight-b">
+          <div class="team-label">Time B</div>
+          <div class="team-name b" id="teamBName">—</div>
+          <ul class="player-list" id="playerListB"></ul>
+          <div class="gk-row" id="gkRowB" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Times aguardando -->
+      <div id="waitingSection" style="display:none; margin-bottom:20px;">
+        <div class="bench-title">⏳ Aguardando</div>
+        <div class="waiting-teams" id="waitingTeams"></div>
+      </div>
+
+      <!-- Quem ganhou? -->
+      <div class="winner-section">
+        <p>🏆 Quem ganhou?</p>
+        <div class="winner-btns">
+          <button class="btn btn-win-a big" id="btnWinA" onclick="selectWinner('A')">
+            🟢 Time A venceu
+          </button>
+          <button class="btn btn-win-b big" id="btnWinB" onclick="selectWinner('B')">
+            🔵 Time B venceu
+          </button>
+          <button class="btn btn-empate" onclick="selectWinner('E')">
+            🟡 Empate
+          </button>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn btn-ghost sm" onclick="resetToSetup()">↩ Novo sorteio</button>
+        <button class="btn btn-ghost sm" onclick="reshuffleAll()">🔀 Ressortear tudo</button>
+      </div>
+    </div>
+
+    <!-- Histórico -->
+    <div class="card" id="historyCard" style="display:none">
+      <h2 class="section-title">📋 Histórico de Partidas</h2>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // ESTADO GLOBAL
+  // ============================================================
+  let state = {
+    allPlayers: [],        // todos os nomes adicionados
+    teamA: [],             // time jogando atualmente (lado A)
+    teamB: [],             // time jogando atualmente (lado B)
+    gkA: null,             // {name, priority} goleiro do time A
+    gkB: null,             // {name, priority} goleiro do time B
+    bench: [],             // [{name, priority}] — fila de espera
+    matchCount: 0,
+    history: [],           // [{match, winnerSide, teamANames, teamBNames}]
+  };
+
+  let names = [];          // lista de nomes (setup)
+
+  // ============================================================
+  // SETUP — gerenciar nomes
+  // ============================================================
+  function addName() {
+    const inp = document.getElementById('nameInput');
+    const val = inp.value.trim();
+    if (!val) return;
+    if (names.includes(val)) { inp.select(); return; }
+    names.push(val);
+    inp.value = '';
+    inp.focus();
+    renderChips();
+  }
+
+  document.getElementById('nameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addName();
+  });
+
+  function addBulk() {
+    const bulk = document.getElementById('bulkInput').value;
+    const parts = bulk.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    const added = [];
+    parts.forEach(n => {
+      if (!names.includes(n)) { names.push(n); added.push(n); }
+    });
+    document.getElementById('bulkInput').value = '';
+    renderChips();
+  }
+
+  function removeName(i) {
+    names.splice(i, 1);
+    renderChips();
+  }
+
+  function clearAll() {
+    if (names.length && !confirm('Limpar todos os nomes?')) return;
+    names = [];
+    renderChips();
+  }
+
+  function renderChips() {
+    const chips = document.getElementById('nameChips');
+    const countTag = document.getElementById('countTag');
+    const btn = document.getElementById('btnDraw');
+    const hint = document.getElementById('drawHint');
+
+    chips.innerHTML = names.map((n, i) =>
+      `<span class="chip">${n}<button onclick="removeName(${i})" title="Remover">✕</button></span>`
+    ).join('');
+
+    countTag.textContent = `${names.length} jogador${names.length !== 1 ? 'es' : ''}`;
+    countTag.className = `tag ${names.length >= 6 ? 'ok' : 'warn'}`;
+
+    const ok = names.length >= 6;
+    btn.disabled = !ok;
+
+    if (names.length === 0) hint.textContent = 'Adicione pelo menos 6 jogadores para sortear.';
+    else if (names.length < 6) hint.textContent = `Faltam ${6 - names.length} jogador(es).`;
+    else {
+      const nTeams = Math.floor(names.length / 5);
+      const rem = names.length % 5;
+      hint.textContent = rem === 0
+        ? `${nTeams} time${nTeams > 1 ? 's' : ''} completo${nTeams > 1 ? 's' : ''} de 5.`
+        : `${nTeams} time${nTeams > 1 ? 's' : ''} completo${nTeams > 1 ? 's' : ''} + 1 time incompleto (${rem} jogadores).`;
+    }
+  }
+
+  // ============================================================
+  // SORTEIO INICIAL
+  // ============================================================
+  function draw() {
+    const shuffled = shuffle([...names]);
+
+    // divide em times de 5
+    const groups = [];
+    for (let i = 0; i < shuffled.length; i += 5) {
+      groups.push(shuffled.slice(i, i + 5));
+    }
+
+    // teamA e teamB jogam; o resto vai pro banco
+    state.teamA = groups[0] || [];
+    state.teamB = groups[1] || [];
+    state.bench = [];
+    state.matchCount = 1;
+    state.history = [];
+
+    // grupos restantes → banco (como times intactos em ordem)
+    for (let g = 2; g < groups.length; g++) {
+      groups[g].forEach(name => state.bench.push({ name, priority: false }));
+    }
+
+    // atribuir goleiros
+    assignGKs();
+
+    showMatchPhase();
+  }
+
+  function reshuffleAll() {
+    if (!confirm('Ressortear tudo e reiniciar as partidas?')) return;
+    draw();
+  }
+
+  // ============================================================
+  // ATRIBUIÇÃO DE GOLEIROS
+  // ============================================================
+  function assignGKs() {
+    state.gkA = null;
+    state.gkB = null;
+
+    const bench = state.bench;
+
+    if (bench.length >= 2) {
+      // Pega os dois primeiros do banco (priority vem primeiro graças à ordenação)
+      state.gkA = bench.splice(0, 1)[0];
+      state.gkB = bench.splice(0, 1)[0];
+    } else if (bench.length === 1) {
+      state.gkA = bench.splice(0, 1)[0];
+      // GK do time B = último jogador do time A (emprestado)
+      state.gkB = { name: state.teamA[state.teamA.length - 1] + ' (time A)', priority: false, internal: true };
+    } else {
+      // Sem banco: cada time empresta um jogador pro outro
+      state.gkA = { name: state.teamB[state.teamB.length - 1] + ' (time B)', priority: false, internal: true };
+      state.gkB = { name: state.teamA[state.teamA.length - 1] + ' (time A)', priority: false, internal: true };
+    }
+  }
+
+  // ============================================================
+  // SELECIONAR VENCEDOR
+  // ============================================================
+  function selectWinner(side) {
+    const winner = side === 'A' ? state.teamA : side === 'B' ? state.teamB : null;
+    const loser  = side === 'A' ? state.teamB : side === 'B' ? state.teamA : null;
+
+    // registrar histórico
+    state.history.push({
+      match: state.matchCount,
+      side,
+      teamA: [...state.teamA],
+      teamB: [...state.teamB],
+      gkA: state.gkA,
+      gkB: state.gkB,
+    });
+
+    // flash de resultado
+    showResultFlash(side, state.teamA, state.teamB);
+
+    if (side === 'E') {
+      // Empate: o time A sai, time B fica (ou pode ser ajustado)
+      // Coloca time A no banco, time B permanece como "A"
+      state.teamA.forEach(n => state.bench.push({ name: n, priority: false }));
+      // GKs voltam ao banco com prioridade (se vieram do banco)
+      returnGKsToBench();
+      // novo time do banco
+      formNextChallenger();
+    } else {
+      // Perdedor vai pro banco
+      loser.forEach(n => state.bench.push({ name: n, priority: false }));
+      // GKs voltam com prioridade
+      returnGKsToBench();
+      // vencedor vira time A
+      state.teamA = winner;
+      // forma próximo desafiante
+      formNextChallenger();
+    }
+
+    state.matchCount++;
+    assignGKs();
+    showMatchPhase();
+  }
+
+  function returnGKsToBench() {
+    // GKs que vieram do banco real (não internal) voltam ao INÍCIO com prioridade
+    const gksToReturn = [];
+    if (state.gkA && !state.gkA.internal) gksToReturn.push({ name: state.gkA.name, priority: true });
+    if (state.gkB && !state.gkB.internal) gksToReturn.push({ name: state.gkB.name, priority: true });
+    // inserir no início do banco
+    state.bench.unshift(...gksToReturn);
+  }
+
+  function formNextChallenger() {
+    // Próximo time = primeiros 5 do banco (priority vêm primeiro por causa do unshift)
+    const next = state.bench.splice(0, 5);
+    state.teamB = next.map(p => p.name);
+    // se incompleto, marca visualmente (teamB pode ter < 5)
+  }
+
+  // ============================================================
+  // RENDERIZAÇÃO
+  // ============================================================
+  function showMatchPhase() {
+    document.getElementById('phaseSetup').style.display = 'none';
+    document.getElementById('phaseMatch').style.display = '';
+
+    const isIncompleteB = state.teamB.length < 5;
+    const isIncompleteA = state.teamA.length < 5;
+
+    // título
+    document.getElementById('matchTitle').textContent = `⚽ Partida #${state.matchCount}`;
+    document.getElementById('matchSubtitle').textContent =
+      isIncompleteB ? 'Time B incompleto — completou com jogadores do time anterior' :
+      isIncompleteA ? 'Time A incompleto — completou com jogadores do time anterior' :
+      'Partida em jogo!';
+
+    // Time A
+    document.getElementById('teamAName').textContent = `Time A${isIncompleteA ? '' : ' ✅'}`;
+    renderPlayerList('playerListA', state.teamA, 'a');
+    renderGKRow('gkRowA', state.gkA, 'a');
+
+    // botão de vitória do time A
+    document.getElementById('btnWinA').textContent =
+      `🟢 Time A${isIncompleteA ? ' (incompleto)' : ''} venceu`;
+
+    // Time B
+    document.getElementById('teamBName').textContent =
+      `Time B${isIncompleteB ? ' ⚠️' : ' ✅'}`;
+    renderPlayerList('playerListB', state.teamB, 'b');
+    renderGKRow('gkRowB', state.gkB, 'b');
+
+    document.getElementById('btnWinB').textContent =
+      `🔵 Time B${isIncompleteB ? ' (incompleto)' : ''} venceu`;
+
+    // Banco / aguardando
+    if (state.bench.length > 0) {
+      document.getElementById('waitingSection').style.display = '';
+      renderWaiting();
+    } else {
+      document.getElementById('waitingSection').style.display = 'none';
+    }
+
+    // Histórico
+    renderHistory();
+  }
+
+  function renderPlayerList(id, players, side) {
+    const ul = document.getElementById(id);
+    if (!players || players.length === 0) {
+      ul.innerHTML = '<li style="color:var(--muted);font-size:.8rem">Nenhum jogador</li>';
+      return;
+    }
+    ul.innerHTML = players.map(p =>
+      `<li><span class="player-dot ${side}"></span>${p}</li>`
+    ).join('');
+  }
+
+  function renderGKRow(id, gk, side) {
+    const row = document.getElementById(id);
+    if (!gk) { row.style.display = 'none'; return; }
+    row.style.display = 'flex';
+    const priorityBadge = gk.priority ? '<span class="priority-tag">⭐ Prioridade</span>' : '';
+    row.innerHTML = `🧤 Goleiro: <strong>${gk.name}</strong> ${priorityBadge}`;
+  }
+
+  function renderWaiting() {
+    const container = document.getElementById('waitingTeams');
+    // agrupar banco em blocos de 5 (times aguardando)
+    const all = state.bench;
+
+    if (all.length === 0) {
+      container.innerHTML = '<span class="muted" style="font-size:.85rem">—</span>';
+      return;
+    }
+
+    // mostrar como lista única com marcação de prioridade
+    const chunks = [];
+    for (let i = 0; i < all.length; i += 5) chunks.push(all.slice(i, i + 5));
+
+    container.innerHTML = chunks.map((chunk, ci) => {
+      const label = ci === 0 && all.some(p => p.priority)
+        ? `Próximo time${chunk.length < 5 ? ' <span class="incomplete-badge">incompleto</span>' : ''}`
+        : `Time em espera${chunk.length < 5 ? ' <span class="incomplete-badge">incompleto</span>' : ''}`;
+      const players = chunk.map(p =>
+        `<span class="wt-player ${p.priority ? 'priority' : ''}">${p.name}${p.priority ? ' ⭐' : ''}</span>`
+      ).join('');
+      return `<div class="waiting-team-box">
+        <div class="wt-label">${label}</div>
+        <div class="wt-players">${players}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function showResultFlash(side, teamA, teamB) {
+    const el = document.getElementById('resultFlash');
+    el.style.display = '';
+    if (side === 'A') {
+      el.className = 'result-flash win-a';
+      el.textContent = `🏆 Time A venceu! (${teamA.join(', ')})`;
+    } else if (side === 'B') {
+      el.className = 'result-flash win-b';
+      el.textContent = `🏆 Time B venceu! (${teamB.join(', ')})`;
+    } else {
+      el.className = 'result-flash empate';
+      el.textContent = '🤝 Empate! Time A sai, Time B permanece.';
+    }
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+
+  function renderHistory() {
+    const card = document.getElementById('historyCard');
+    const list = document.getElementById('historyList');
+
+    if (state.history.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    list.innerHTML = [...state.history].reverse().map(h => {
+      const winClass = h.side === 'A' ? 'a' : h.side === 'B' ? 'b' : 'e';
+      const winText = h.side === 'A' ? `🟢 Time A venceu`
+                    : h.side === 'B' ? `🔵 Time B venceu`
+                    : '🤝 Empate';
+      return `<div class="history-item">
+        <span class="hnum">#${h.match}</span>
+        <span class="hwinner ${winClass}">${winText}</span>
+        <span class="muted" style="font-size:.78rem; margin-left:auto">
+          A: ${h.teamA.join(', ')} · B: ${h.teamB.join(', ')}
+        </span>
+      </div>`;
+    }).join('');
+  }
+
+  // ============================================================
+  // UTILIDADES
+  // ============================================================
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function resetToSetup() {
+    if (!confirm('Voltar para o setup e limpar as partidas?')) return;
+    document.getElementById('phaseSetup').style.display = '';
+    document.getElementById('phaseMatch').style.display = 'none';
+    document.getElementById('resultFlash').style.display = 'none';
+  }
+</script>
+</body>
+</html>
